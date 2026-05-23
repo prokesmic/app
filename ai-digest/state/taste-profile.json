@@ -1,0 +1,73 @@
+{
+  "generatedAt": "2026-05-23T19:47:20.658Z",
+  "summary": "Builder-practitioner interested in frontier AI: model releases, agents, evals, applied LLM engineering, and the strategy/economics of AI. Follows Karpathy, Mollick, Citrini, and AI-news podcasts.",
+  "topics": [
+    {
+      "name": "LLMs & frontier models",
+      "weight": 1
+    },
+    {
+      "name": "AI agents & tooling",
+      "weight": 0.95
+    },
+    {
+      "name": "applied AI / product",
+      "weight": 0.85
+    },
+    {
+      "name": "evals & benchmarks",
+      "weight": 0.7
+    },
+    {
+      "name": "AI strategy & economics",
+      "weight": 0.7
+    },
+    {
+      "name": "research papers",
+      "weight": 0.6
+    }
+  ],
+  "keywords": [
+    "llm",
+    "agent",
+    "agents",
+    "reasoning",
+    "evals",
+    "fine-tuning",
+    "rag",
+    "transformer",
+    "inference",
+    "open source model",
+    "benchmark",
+    "context window",
+    "multimodal",
+    "coding agent",
+    "prompt",
+    "ai product",
+    "ai strategy",
+    "scaling",
+    "reinforcement learning",
+    "diffusion",
+    "robotics",
+    "ai policy",
+    "compute"
+  ],
+  "preferredAuthors": [
+    "Andrej Karpathy",
+    "Ethan Mollick",
+    "Citrini",
+    "Matt Shumer",
+    "Jack Dorsey"
+  ],
+  "preferredDomains": [
+    "arxiv.org",
+    "openai.com",
+    "anthropic.com",
+    "deepmind.google",
+    "oneusefulthing.org",
+    "latent.space",
+    "karpathy.bearblog.dev",
+    "github.com",
+    "huggingface.co"
+  ]
+}

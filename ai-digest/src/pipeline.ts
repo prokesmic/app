@@ -1,0 +1,57 @@
+import type { ScoredCandidate } from "./types.js";
+import { env, RERANK_POOL } from "./config.js";
+import { collectAll } from "./collect/index.js";
+import { heuristicRank } from "./rank/heuristic.js";
+import { llmRank } from "./rank/llm.js";
+import { buildProfile, seedProfile } from "./taste/bootstrap.js";
+import { deliverToReadwise } from "./deliver/readwise.js";
+import { loadSeen, saveSeen, loadProfile, saveProfile } from "./state/store.js";
+import { log } from "./util/log.js";
+
+export async function runBootstrap(): Promise<void> {
+  const profile = await buildProfile();
+  await saveProfile(profile);
+  log("taste profile saved to state/taste-profile.json");
+}
+
+interface DigestOptions {
+  dryRun?: boolean;
+  refreshProfile?: boolean;
+}
+
+export async function runDigest(opts: DigestOptions = {}): Promise<ScoredCandidate[]> {
+  // 1. Taste profile (build on first run or when asked to refresh).
+  let profile = await loadProfile();
+  if (!profile || opts.refreshProfile) {
+    profile = await buildProfile();
+    await saveProfile(profile);
+  }
+  const effectiveProfile = profile ?? seedProfile();
+
+  // 2. Collect + drop anything already delivered.
+  const seen = await loadSeen();
+  const candidates = (await collectAll()).filter((c) => !seen.items[c.key]);
+  log(`${candidates.length} candidates after removing previously-seen items`);
+  if (candidates.length === 0) return [];
+
+  // 3. Heuristic prefilter -> small pool -> LLM rerank (fallback to heuristic).
+  const prefiltered = heuristicRank(candidates, effectiveProfile).slice(0, RERANK_POOL);
+  const ranked = (await llmRank(prefiltered, effectiveProfile)) ?? heuristicRank(prefiltered, effectiveProfile);
+
+  // 4. Top N for this run.
+  const picks = ranked.slice(0, env.limit);
+  log(`selected ${picks.length} items (limit ${env.limit})`);
+  for (const p of picks) log(`  [${p.score}] ${p.title} — ${p.reason}`);
+
+  if (opts.dryRun) {
+    log("dry-run: not saving state or delivering");
+    return picks;
+  }
+
+  // 5. Mark seen + deliver.
+  const now = new Date().toISOString();
+  for (const p of picks) seen.items[p.key] = now;
+  await saveSeen(seen);
+  await deliverToReadwise(picks);
+  return picks;
+}

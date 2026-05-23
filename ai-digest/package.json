@@ -1,0 +1,23 @@
+{
+  "name": "ai-digest",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Daily agent that finds top AI articles/posts/papers and saves them to Readwise Reader",
+  "scripts": {
+    "bootstrap": "tsx src/cli.ts bootstrap",
+    "collect": "tsx src/cli.ts collect",
+    "digest": "tsx src/cli.ts digest",
+    "dry-run": "tsx src/cli.ts digest --dry-run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.98.0",
+    "rss-parser": "^3.13.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.0.0"
+  }
+}
