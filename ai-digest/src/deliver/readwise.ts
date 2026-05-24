@@ -9,7 +9,8 @@ interface SaveResult { ok: boolean; alreadyExists: boolean }
 async function saveOne(item: ScoredCandidate): Promise<SaveResult> {
   const body: Record<string, unknown> = {
     url: item.url,
-    title: item.title,
+    // Prefix the rank score so it's visible in Reader's list view.
+    title: `[${item.score}] ${item.title}`,
     author: item.author || item.sourceName,
     summary: item.reason,
     location: env.location,
@@ -52,8 +53,11 @@ export async function deliverToReadwise(items: ScoredCandidate[]): Promise<numbe
     warn("no READWISE_TOKEN set — skipping delivery");
     return 0;
   }
+  // Save lowest-score first → highest-score gets the newest saved_at, so it
+  // sits at the top of Reader's default newest-first feed.
+  const ordered = [...items].sort((a, b) => a.score - b.score);
   let saved = 0;
-  for (const item of items) {
+  for (const item of ordered) {
     const r = await saveOne(item);
     if (r.ok) saved++;
     // Stay well under the 50 req/min limit.
