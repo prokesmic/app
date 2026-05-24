@@ -2,8 +2,9 @@
 
 A daily agent that finds the top AI articles, essays, announcements, papers, and
 posts you'd actually want to read — and saves them to your **Readwise Reader**.
-It runs **twice a day** and learns your taste from the AI podcasts you listen to
-and the authors you follow.
+It runs **twice a day on your Mac Mini** and learns your taste from the AI podcasts
+you listen to and the authors you follow. Ranking runs on a **local Gemma model via
+[Ollama](https://ollama.com)** — no cloud LLM, no per-token cost.
 
 This is a standalone project; it shares the repo but is independent of the app at
 the repository root.
@@ -11,28 +12,29 @@ the repository root.
 ## How it works
 
 ```
-[COLLECT] → [DEDUP + MERGE] → [PREFILTER] → [LLM RERANK] → [TOP N] → [READWISE]
-                                                ▲
-                                       [TASTE PROFILE]  ← built from ~30 days of
-                                                           your podcasts + authors
+[COLLECT] → [DEDUP + MERGE] → [PREFILTER] → [GEMMA RERANK] → [TOP N] → [READWISE]
+                                                 ▲
+                                        [TASTE PROFILE]  ← built by Gemma from ~30 days
+                                                            of your podcasts + authors
 ```
 
-1. **Collect** — pulls from RSS (authors, labs, papers, podcasts), the Hacker News
-   front page (AI-filtered), and mines *cited links* out of annotated podcast show
+1. **Collect** — RSS (authors, labs, papers, podcasts), the Hacker News front page
+   (AI-filtered), GitHub trending, and *cited links* mined from annotated podcast show
    notes (e.g. Latent Space). See `src/config.ts`.
 2. **Dedup + merge** — canonicalizes URLs and merges duplicates; an item surfaced by
-   several sources gets a corroboration boost.
-3. **Taste profile** — `bootstrap` reads ~30 days of your podcasts + author feeds and
-   has Claude infer the topics, keywords, authors, and domains you care about
-   (`state/taste-profile.json`). Refresh anytime with `--refresh-profile`.
-4. **Prefilter → rerank** — a transparent heuristic narrows the pool, then Claude
-   reranks the survivors against your taste profile and writes a one-line
-   "why you'll care" for each.
+   several sources gets a corroboration boost. Also drops anything already in your
+   Reader library.
+3. **Taste profile** — Gemma reads ~30 days of your podcasts + author feeds (and, if
+   enabled, locally-transcribed podcast topics + what you've read in Readwise) and infers
+   the topics, keywords, authors, and domains you care about (`state/taste-profile.json`).
+   Rebuilt automatically when it's >7 days old, or on demand with `--refresh-profile`.
+4. **Prefilter → rerank** — a transparent heuristic narrows the pool, then Gemma reranks
+   the survivors against your profile and writes a one-line "why you'll care" for each.
 5. **Deliver** — saves the top N to Readwise Reader, tagged and annotated.
    `state/seen.json` guarantees nothing is ever sent twice (across both daily runs).
 
-If `ANTHROPIC_API_KEY` is unset, it falls back to the heuristic ranker and a seed
-taste profile, so it still runs end-to-end (useful for testing).
+If Ollama isn't running, every step falls back gracefully to a transparent heuristic
+ranker + a seed profile, so the agent still produces a digest (lower nuance).
 
 ## Sources
 
@@ -41,99 +43,100 @@ Followed authors: **Karpathy**, **Ethan Mollick** (One Useful Thing), **Citrini 
 **Ahead of AI** (Sebastian Raschka), **Don't Worry About the Vase** (Zvi).
 Labs: **OpenAI**, **Google DeepMind**, **Anthropic** (community mirror — no official
 feed), **Hugging Face**. Papers: **arXiv** (cs.AI/LG/CL).
-Aggregators: **Hacker News**, **GitHub trending** (newly-popular AI repos via the
-Search API). Podcasts (taste signal + cited-link mining where useful): **Latent Space**,
-**Last Week in AI**, **The AI Daily Brief**, **Everyday AI**, **The Artificial Intelligence Show**.
+Aggregators: **Hacker News**, **GitHub trending**. Podcasts (taste signal + cited-link
+mining where useful): **Latent Space**, **Last Week in AI**, **The AI Daily Brief**,
+**Everyday AI**, **The Artificial Intelligence Show**.
 
-No single source can flood a run — each is capped at 3 items per digest, so you get a
+No single source can flood a run — each is capped at 5 items per digest, so you get a
 mix of articles, essays, papers, repos, and podcast picks. Add or reweight any source
 in `src/config.ts`.
 
-### Podcast transcription (optional, off by default)
-
-Some podcasts (AI Daily Brief, Everyday AI) only put sponsor links in their show notes —
-the articles they actually discuss are spoken. Set `DEEPGRAM_API_KEY` and the agent will
-transcribe recent episodes (via Deepgram, server-side — no audio download), then use
-Claude + web search to resolve the works the hosts discuss into real, saved articles.
-Transcribed episodes are remembered (`state/transcribed.json`) so you never pay twice.
-Leave the key blank to skip (no cost). Tune volume with `TRANSCRIBE_LIMIT`.
-
 ### Engagement feedback loop
+Each run pulls your existing Reader library to (1) skip anything you've already saved and
+(2) learn from what you've **archived or read** — those titles feed the next profile
+rebuild. Disable with `READWISE_FEEDBACK=0`.
 
-When `READWISE_TOKEN` is set, each run pulls your existing Reader library to (1) avoid
-recommending anything you've already saved and (2) learn from what you've **archived or
-read** — those titles become a positive signal the next time the taste profile is built
-(`--refresh-profile`). Disable with `READWISE_FEEDBACK=0`.
+### Podcast transcription (optional, off by default)
+Some podcasts (AI Daily Brief, Everyday AI) only put sponsor links in their show notes —
+the articles they actually discuss are spoken. Set `TRANSCRIBE=1` and the agent uses
+**Whisper on your Mac** to transcribe recent episodes, then Gemma extracts the *topics
+discussed* to sharpen your taste profile. (It enriches ranking rather than producing
+article links directly — that needed a web-search tool the local model doesn't have.)
+Transcribed episodes are remembered (`state/transcribed.json`) so it never re-transcribes.
+Requires `ffmpeg` + a Whisper CLI — see Setup.
 
 ### X/Twitter (optional, off by default)
-
-Reading tweets (e.g. Matt Shumer, Jack Dorsey) requires a paid X API or a self-hosted
-**RSSHub** instance. Set `X_RSSHUB_BASE` to your RSSHub URL to pull posts from
-`X_HANDLES`; leave it blank and the X collector is a no-op (no cost). Karpathy's and
+Reading tweets (e.g. Matt Shumer, Jack Dorsey) needs a self-hosted **RSSHub** instance.
+Set `X_RSSHUB_BASE` to pull posts from `X_HANDLES`; blank = no-op. Karpathy's and
 Mollick's essays already arrive via their RSS feeds regardless.
 
-## Setup
+## Setup (on the Mac Mini)
 
 ```bash
+# 1. Install + start Ollama, pull the model
+brew install ollama          # or download from ollama.com
+ollama serve &               # runs the local LLM server (also a login item / brew service)
+ollama pull gemma3:12b
+
+# 2. Install deps and configure
 cd ai-digest
 npm install
-cp .env.example .env   # then fill in the values
+cp .env.example .env          # fill in READWISE_TOKEN (from readwise.io/access_token)
+
+# (optional) for podcast transcription:
+brew install ffmpeg
+pip install mlx-whisper        # Apple-Silicon Whisper; then set TRANSCRIBE=1 in .env
 ```
 
-Get a **Readwise token** at https://readwise.io/access_token and (optionally) an
-**Anthropic API key**. Put them in `.env`:
-
-```
-READWISE_TOKEN=...
-ANTHROPIC_API_KEY=...        # optional but recommended for quality ranking
-DIGEST_MODEL=claude-opus-4-7 # set to claude-haiku-4-5 to cut cost
-DIGEST_LIMIT=10              # items per run (×2 runs/day)
-READWISE_LOCATION=feed       # new | later | archive | feed
-```
+The only required value in `.env` is `READWISE_TOKEN`. Everything else has sensible
+defaults (`OLLAMA_MODEL=gemma3:12b`, `DIGEST_LIMIT=20`, etc.).
 
 ## Usage
 
 ```bash
-npm run bootstrap     # build the taste profile (run once; re-run to refresh)
+npm run bootstrap     # build the taste profile (auto-runs on first digest too)
 npm run dry-run       # collect + rank + print top N, save nothing
 npm run digest        # the real thing: rank + save top N to Readwise
 npm run collect       # diagnostic: print collected candidates
 ```
 
-## Scheduling (twice daily)
+## Scheduling (twice daily, via launchd)
 
-The included GitHub Actions workflow (`.github/workflows/ai-digest.yml`) runs the
-digest twice a day and commits the updated `state/` back to the branch (zero
-external infrastructure). To enable it:
+```bash
+bash deploy/install-launchd.sh            # runs daily at 07:00 and 17:00 local time
+# custom times:  MORNING=8 EVENING=18 bash deploy/install-launchd.sh
+```
 
-1. Repo **Settings → Secrets and variables → Actions**:
-   - Secrets: `READWISE_TOKEN`, `ANTHROPIC_API_KEY`
-   - (optional) Variables: `DIGEST_MODEL`, `DIGEST_LIMIT`, `READWISE_LOCATION`, `READWISE_TAGS`
-2. Adjust the two `cron` times (UTC) in the workflow to your morning/evening.
-3. Use **Run workflow** (workflow_dispatch) to trigger manually, with optional
-   `dry_run` / `refresh_profile` toggles.
+This installs a `launchd` agent (`~/Library/LaunchAgents/com.ai-digest.digest.plist`)
+that runs `deploy/run.sh` twice a day and logs to `state/digest.log`. To stop it:
+`launchctl unload ~/Library/LaunchAgents/com.ai-digest.digest.plist`.
+
+> The Mac must be awake at those times (or use `pmset`/Wake schedule). launchd uses
+> **local** time. State lives in `state/*.json` on this machine.
+
+### Optional cloud fallback
+`.github/workflows/ai-digest.yml` can run the digest manually from GitHub Actions, but
+the cloud can't reach your local Gemma, so it ranks with the heuristic only. Don't run it
+on a schedule alongside the local agent — their dedup state is separate, so you'd get
+duplicates.
 
 ## Cost
 
-- Ranking + taste extraction: a few cents/day on Claude (less on Haiku). One LLM
-  call per run reranks ~40 candidates; the taste profile is the cached prefix.
-- Everything else (RSS, HN, Readwise) is free.
+- Ranking + taste profile: **$0** — runs locally on Gemma.
+- Transcription: **$0** — local Whisper (just CPU/GPU time on the Mac).
+- Everything else (RSS, HN, GitHub, Readwise): free APIs.
 
 ## Roadmap
 
 Done:
-- ✅ **More sources** — Simon Willison, Interconnects, Import AI, Ahead of AI, Zvi,
-  Google DeepMind, Hugging Face, Last Week in AI.
-- ✅ **Feedback loop** — engagement-aware dedup + taste enrichment from your Reader library.
-- ✅ **X/Twitter** — pluggable RSSHub-backed collector (off until configured).
-- ✅ **GitHub trending** — newly-popular AI repos via the Search API.
-- ✅ **Anthropic blog** — via a community mirror feed (Meta has no feed; skipped).
-- ✅ **Audio transcription** — Deepgram + Claude web search mines spoken citations
-  (off until `DEEPGRAM_API_KEY` is set).
-- ✅ **Diversity cap** — max 3 items per source per digest.
+- ✅ Local Gemma (Ollama) ranking + taste profile — no cloud LLM.
+- ✅ Local Whisper transcription → topic enrichment.
+- ✅ More sources (Willison, Interconnects, Import AI, Raschka, Zvi, DeepMind, HF, LWiAI).
+- ✅ Engagement feedback loop from your Reader library.
+- ✅ GitHub trending, Anthropic (mirror), pluggable X/RSSHub.
+- ✅ Per-source diversity cap; twice-daily launchd scheduling.
 
-Still open / future:
-- **Star-velocity trending** for GitHub (the Search API has no real trending signal;
-  we approximate with newly-created, star-sorted repos).
-- **Taste enrichment from transcripts** — currently transcripts yield candidate
-  articles; folding their topics back into the profile is a natural next step.
+Future:
+- **Resolve spoken citations to URLs** locally (add a local search tool like SearXNG so
+  transcripts can yield saved articles, not just topics).
+- **Star-velocity trending** for GitHub (the Search API has no true trending signal).

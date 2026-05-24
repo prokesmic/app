@@ -1,5 +1,6 @@
 import type { ScoredCandidate } from "./types.js";
-import { env, RERANK_POOL, PER_SOURCE_CAP } from "./config.js";
+import { env, RERANK_POOL, PER_SOURCE_CAP, PROFILE_MAX_AGE_DAYS } from "./config.js";
+import { ollamaUp } from "./llm/ollama.js";
 import { collectAll } from "./collect/index.js";
 import { fetchReaderLibrary, engagedTitles } from "./collect/readwiseLibrary.js";
 import { heuristicRank } from "./rank/heuristic.js";
@@ -26,9 +27,15 @@ export async function runDigest(opts: DigestOptions = {}): Promise<ScoredCandida
   const library = await fetchReaderLibrary();
   const inLibrary = new Set(library.map((d) => d.key));
 
-  // 1. Taste profile (build on first run or when asked to refresh).
+  if (!(await ollamaUp())) {
+    log(`Gemma/Ollama not reachable at ${env.ollamaHost} — ranking will use the heuristic fallback. Start it with: ollama serve`);
+  }
+
+  // 1. Taste profile (build on first run, when asked, or once it's stale).
   let profile = await loadProfile();
-  if (!profile || opts.refreshProfile) {
+  const stale = profile ? Date.now() - new Date(profile.generatedAt).getTime() > PROFILE_MAX_AGE_DAYS * 86_400_000 : true;
+  if (!profile || opts.refreshProfile || stale) {
+    log(profile ? "refreshing taste profile" : "building initial taste profile");
     profile = await buildProfile(engagedTitles(library));
     await saveProfile(profile);
   }

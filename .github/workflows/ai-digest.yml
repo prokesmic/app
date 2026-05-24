@@ -1,14 +1,12 @@
-name: AI Digest
+name: AI Digest (manual / heuristic-only)
 
-# Runs twice daily. Each run picks DIGEST_LIMIT fresh items (deduped against
-# state/seen.json) and saves them to Readwise Reader, so the two runs together
-# deliver ~2x DIGEST_LIMIT per day with no repeats.
-#
-# Times are UTC — adjust to taste. Default: ~07:00 and ~17:00 UTC.
+# NOTE: The primary twice-daily agent now runs LOCALLY on the Mac Mini via launchd
+# (see ai-digest/deploy/) so it can use Gemma through Ollama. GitHub's cloud runners
+# can't reach your local Ollama, so this workflow ranks with the HEURISTIC fallback
+# only. It's kept as an optional manual run (e.g. when the Mac is off). Don't run it
+# on a schedule alongside the local agent — their dedup state lives in different
+# places (git vs. the Mac), so both running would double-deliver.
 on:
-  schedule:
-    - cron: "0 7 * * *"
-    - cron: "0 17 * * *"
   workflow_dispatch:
     inputs:
       dry_run:
@@ -48,16 +46,10 @@ jobs:
       - name: Run digest
         env:
           READWISE_TOKEN: ${{ secrets.READWISE_TOKEN }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          DIGEST_MODEL: ${{ vars.DIGEST_MODEL || 'claude-opus-4-7' }}
           DIGEST_LIMIT: ${{ vars.DIGEST_LIMIT || '20' }}
           READWISE_LOCATION: ${{ vars.READWISE_LOCATION || 'feed' }}
           READWISE_TAGS: ${{ vars.READWISE_TAGS || 'ai-digest' }}
           READWISE_FEEDBACK: ${{ vars.READWISE_FEEDBACK || '1' }}
-          X_RSSHUB_BASE: ${{ vars.X_RSSHUB_BASE }}
-          X_HANDLES: ${{ vars.X_HANDLES }}
-          DEEPGRAM_API_KEY: ${{ secrets.DEEPGRAM_API_KEY }}
-          TRANSCRIBE_LIMIT: ${{ vars.TRANSCRIBE_LIMIT || '1' }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ARGS="digest"

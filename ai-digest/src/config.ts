@@ -72,23 +72,27 @@ function parseHandles(): string[] {
 
 export const env = {
   readwiseToken: process.env.READWISE_TOKEN ?? "",
-  anthropicKey: process.env.ANTHROPIC_API_KEY ?? "",
-  model: process.env.DIGEST_MODEL || "claude-opus-4-7",
+  // Local LLM via Ollama (https://ollama.com) running on the Mac Mini.
+  ollamaHost: (process.env.OLLAMA_HOST || "http://localhost:11434").replace(/\/$/, ""),
+  ollamaModel: process.env.OLLAMA_MODEL || "gemma3:12b",
+  ollamaNumCtx: Number(process.env.OLLAMA_NUM_CTX || "16384"),
   limit: Number(process.env.DIGEST_LIMIT || "20"),
   location: (process.env.READWISE_LOCATION || "feed") as "new" | "later" | "archive" | "feed",
   tags: (process.env.READWISE_TAGS || "ai-digest").split(",").map((t) => t.trim()).filter(Boolean),
   // Engagement feedback loop: skip items already in your Reader library and learn
   // from what you've archived/read. On by default when a token is present.
   readwiseFeedback: (process.env.READWISE_FEEDBACK ?? "1") !== "0",
-  // Pluggable X/Twitter collector (v2, off unless configured — no cost by default).
+  // Pluggable X/Twitter collector (off unless configured — no cost by default).
   // Point X_RSSHUB_BASE at a self-hosted RSSHub instance, e.g. https://rsshub.example.com
   xRsshubBase: (process.env.X_RSSHUB_BASE ?? "").replace(/\/$/, ""),
   xHandles: parseHandles(),
-  // Podcast transcription (v2, off unless a Deepgram key is set). Mines spoken
-  // citations from podcasts whose show notes don't carry article links.
-  deepgramKey: process.env.DEEPGRAM_API_KEY ?? "",
-  // Max episodes to transcribe per podcast per run (caps ASR + search cost).
+  // Local podcast transcription (off unless TRANSCRIBE=1). Uses Whisper on the Mac
+  // to transcribe episodes whose show notes lack cited links, then Gemma extracts
+  // the topics discussed to enrich your taste profile.
+  transcribeEnabled: (process.env.TRANSCRIBE ?? "0") === "1",
   transcribeLimit: Number(process.env.TRANSCRIBE_LIMIT || "1"),
+  whisperCmd: process.env.WHISPER_CMD || "mlx_whisper",
+  whisperModel: process.env.WHISPER_MODEL || "mlx-community/whisper-large-v3-turbo",
   // Optional GitHub token to raise the trending-search rate limit (works unauth too).
   githubToken: process.env.GITHUB_TOKEN ?? "",
 };
@@ -101,3 +105,5 @@ export const MAX_AGE_DAYS = 4;
 export const RERANK_POOL = 40;
 /** Max items any single source may contribute to one digest, for a varied mix. */
 export const PER_SOURCE_CAP = 5;
+/** Rebuild the taste profile automatically once it's older than this many days. */
+export const PROFILE_MAX_AGE_DAYS = 7;

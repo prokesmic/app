@@ -1,8 +1,9 @@
-import Anthropic from "@anthropic-ai/sdk";
 import Parser from "rss-parser";
 import type { TasteProfile } from "../types.js";
-import { TASTE_PODCASTS, TASTE_AUTHORS, SEED_KEYWORDS, PREFERRED_DOMAINS_SEED, env } from "../config.js";
+import { TASTE_PODCASTS, TASTE_AUTHORS, SEED_KEYWORDS, PREFERRED_DOMAINS_SEED } from "../config.js";
 import { stripHtml } from "../util/html.js";
+import { ollamaJson } from "../llm/ollama.js";
+import { collectTranscriptTopics } from "../collect/transcripts.js";
 import { log, warn } from "../util/log.js";
 
 const parser = new Parser({ timeout: 20_000, headers: { "User-Agent": "ai-digest/0.1" } });
@@ -71,15 +72,18 @@ const PROFILE_SCHEMA = {
 } as const;
 
 /**
- * Build a taste profile from ~30 days of the reader's podcasts + followed authors.
- * Falls back to the seed profile if there's no API key or the call fails.
+ * Build a taste profile from ~30 days of the reader's podcasts + followed authors,
+ * optionally enriched by locally-transcribed podcast topics and Readwise engagement.
+ * Falls back to the seed profile if Gemma is unreachable.
  */
 export async function buildProfile(engagedTitles: string[] = []): Promise<TasteProfile> {
-  if (!env.anthropicKey) {
-    log("no ANTHROPIC_API_KEY — using seed taste profile");
-    return seedProfile();
-  }
   let corpus = await gatherCorpus();
+
+  // Local Whisper transcripts -> discussed topics (no-op unless TRANSCRIBE=1).
+  const transcriptTopics = await collectTranscriptTopics();
+  if (transcriptTopics.length) {
+    corpus += `\n\n## Topics discussed on your podcasts (from transcripts)\n${transcriptTopics.join(", ")}`;
+  }
   if (engagedTitles.length) {
     corpus += `\n\n## Articles you saved & engaged with in Readwise (strong positive signal)\n${engagedTitles.map((t) => `- ${t}`).join("\n")}`;
   }
@@ -88,24 +92,22 @@ export async function buildProfile(engagedTitles: string[] = []): Promise<TasteP
     return seedProfile();
   }
 
-  const client = new Anthropic({ apiKey: env.anthropicKey });
-  try {
-    const res = await client.messages.create({
-      model: env.model,
-      max_tokens: 4000,
-      thinking: { type: "adaptive" },
-      output_config: { effort: "medium", format: { type: "json_schema", schema: PROFILE_SCHEMA } },
-      system:
-        "You analyze what a reader cares about based on the AI podcasts they listen to and the authors they follow. From the recent episode titles/descriptions and author posts below, infer a concrete taste profile: the topics they lean into, high-signal keywords to match future articles against, the authors and domains they value. Be specific to AI/ML; avoid generic filler. Keywords should be lowercase phrases useful for substring matching.",
-      messages: [{ role: "user", content: `Recent material from the reader's sources (last ${BOOTSTRAP_DAYS} days):\n\n${corpus}` }],
-    });
-    const textBlock = res.content.find((b) => b.type === "text");
-    if (!textBlock || textBlock.type !== "text") return seedProfile();
-    const p = JSON.parse(textBlock.text) as Omit<TasteProfile, "generatedAt">;
-    log(`built taste profile: ${p.topics.length} topics, ${p.keywords.length} keywords`);
-    return { ...p, generatedAt: new Date().toISOString() };
-  } catch (e) {
-    warn("profile build failed, using seed:", (e as Error).message);
+  const system =
+    "You analyze what a reader cares about based on the AI podcasts they listen to and the authors they follow. From the recent episode titles/descriptions, author posts, discussed topics, and engaged articles below, infer a concrete taste profile: the topics they lean into, high-signal keywords to match future articles against, the authors and domains they value. Be specific to AI/ML; avoid generic filler. Keywords should be lowercase phrases useful for substring matching. JSON only.";
+  const p = await ollamaJson<Omit<TasteProfile, "generatedAt">>(
+    system,
+    `Recent material from the reader's sources (last ${BOOTSTRAP_DAYS} days):\n\n${corpus}`,
+    PROFILE_SCHEMA,
+  );
+  if (!p?.topics || !p.keywords) {
+    warn("Gemma profile build failed — using seed profile");
     return seedProfile();
   }
+  log(`built taste profile with Gemma: ${p.topics.length} topics, ${p.keywords.length} keywords`);
+  return {
+    ...p,
+    preferredAuthors: p.preferredAuthors ?? [],
+    preferredDomains: p.preferredDomains ?? [],
+    generatedAt: new Date().toISOString(),
+  };
 }
