@@ -74,7 +74,7 @@ export const env = {
   readwiseToken: process.env.READWISE_TOKEN ?? "",
   anthropicKey: process.env.ANTHROPIC_API_KEY ?? "",
   model: process.env.DIGEST_MODEL || "claude-opus-4-7",
-  limit: Number(process.env.DIGEST_LIMIT || "10"),
+  limit: Number(process.env.DIGEST_LIMIT || "20"),
   location: (process.env.READWISE_LOCATION || "feed") as "new" | "later" | "archive" | "feed",
   tags: (process.env.READWISE_TAGS || "ai-digest").split(",").map((t) => t.trim()).filter(Boolean),
   // Engagement feedback loop: skip items already in your Reader library and learn
@@ -100,4 +100,4 @@ export const MAX_AGE_DAYS = 4;
 /** How many candidates survive the heuristic prefilter and go to the LLM reranker. */
 export const RERANK_POOL = 40;
 /** Max items any single source may contribute to one digest, for a varied mix. */
-export const PER_SOURCE_CAP = 3;
+export const PER_SOURCE_CAP = 5;
