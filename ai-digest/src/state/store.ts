@@ -6,6 +6,7 @@ import type { SeenStore, TasteProfile } from "../types.js";
 const STATE_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "state");
 const SEEN_PATH = join(STATE_DIR, "seen.json");
 const PROFILE_PATH = join(STATE_DIR, "taste-profile.json");
+const TRANSCRIBED_PATH = join(STATE_DIR, "transcribed.json");
 
 /** Drop seen entries older than this so the file doesn't grow unbounded. */
 const SEEN_RETENTION_DAYS = 45;
@@ -41,4 +42,17 @@ export async function loadProfile(): Promise<TasteProfile | null> {
 
 export async function saveProfile(profile: TasteProfile): Promise<void> {
   await writeJson(PROFILE_PATH, profile);
+}
+
+/** Episode keys already transcribed, so we never pay to transcribe one twice. */
+export async function loadTranscribed(): Promise<SeenStore> {
+  return readJson<SeenStore>(TRANSCRIBED_PATH, { items: {} });
+}
+
+export async function saveTranscribed(store: SeenStore): Promise<void> {
+  const cutoff = Date.now() - SEEN_RETENTION_DAYS * 86_400_000;
+  for (const [key, iso] of Object.entries(store.items)) {
+    if (new Date(iso).getTime() < cutoff) delete store.items[key];
+  }
+  await writeJson(TRANSCRIBED_PATH, store);
 }

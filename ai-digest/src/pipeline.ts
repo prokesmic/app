@@ -1,5 +1,5 @@
 import type { ScoredCandidate } from "./types.js";
-import { env, RERANK_POOL } from "./config.js";
+import { env, RERANK_POOL, PER_SOURCE_CAP } from "./config.js";
 import { collectAll } from "./collect/index.js";
 import { fetchReaderLibrary, engagedTitles } from "./collect/readwiseLibrary.js";
 import { heuristicRank } from "./rank/heuristic.js";
@@ -44,9 +44,18 @@ export async function runDigest(opts: DigestOptions = {}): Promise<ScoredCandida
   const prefiltered = heuristicRank(candidates, effectiveProfile).slice(0, RERANK_POOL);
   const ranked = (await llmRank(prefiltered, effectiveProfile)) ?? heuristicRank(prefiltered, effectiveProfile);
 
-  // 4. Top N for this run.
-  const picks = ranked.slice(0, env.limit);
-  log(`selected ${picks.length} items (limit ${env.limit})`);
+  // 4. Top N for this run, with a per-source cap so no single feed floods the digest.
+  const perSource = new Map<string, number>();
+  const picks: ScoredCandidate[] = [];
+  for (const r of ranked) {
+    const base = r.sourceId.replace(/:(cited|transcript)$/, "");
+    const n = perSource.get(base) ?? 0;
+    if (n >= PER_SOURCE_CAP) continue;
+    perSource.set(base, n + 1);
+    picks.push(r);
+    if (picks.length >= env.limit) break;
+  }
+  log(`selected ${picks.length} items (limit ${env.limit}, max ${PER_SOURCE_CAP}/source)`);
   for (const p of picks) log(`  [${p.score}] ${p.title} — ${p.reason}`);
 
   if (opts.dryRun) {

@@ -39,12 +39,24 @@ taste profile, so it still runs end-to-end (useful for testing).
 Followed authors: **Karpathy**, **Ethan Mollick** (One Useful Thing), **Citrini Research**,
 **Simon Willison**, **Interconnects** (Nathan Lambert), **Import AI** (Jack Clark),
 **Ahead of AI** (Sebastian Raschka), **Don't Worry About the Vase** (Zvi).
-Labs: **OpenAI**, **Google DeepMind**, **Hugging Face**. Papers: **arXiv** (cs.AI/LG/CL).
-Aggregator: **Hacker News**.
-Podcasts (taste signal + cited-link mining where useful): **Latent Space**,
+Labs: **OpenAI**, **Google DeepMind**, **Anthropic** (community mirror — no official
+feed), **Hugging Face**. Papers: **arXiv** (cs.AI/LG/CL).
+Aggregators: **Hacker News**, **GitHub trending** (newly-popular AI repos via the
+Search API). Podcasts (taste signal + cited-link mining where useful): **Latent Space**,
 **Last Week in AI**, **The AI Daily Brief**, **Everyday AI**, **The Artificial Intelligence Show**.
 
-Add or reweight any source in `src/config.ts`.
+No single source can flood a run — each is capped at 3 items per digest, so you get a
+mix of articles, essays, papers, repos, and podcast picks. Add or reweight any source
+in `src/config.ts`.
+
+### Podcast transcription (optional, off by default)
+
+Some podcasts (AI Daily Brief, Everyday AI) only put sponsor links in their show notes —
+the articles they actually discuss are spoken. Set `DEEPGRAM_API_KEY` and the agent will
+transcribe recent episodes (via Deepgram, server-side — no audio download), then use
+Claude + web search to resolve the works the hosts discuss into real, saved articles.
+Transcribed episodes are remembered (`state/transcribed.json`) so you never pay twice.
+Leave the key blank to skip (no cost). Tune volume with `TRANSCRIBE_LIMIT`.
 
 ### Engagement feedback loop
 
@@ -109,15 +121,19 @@ external infrastructure). To enable it:
 
 ## Roadmap
 
-Done since v1:
-- ✅ **More sources** — added Simon Willison, Interconnects, Import AI, Ahead of AI,
-  Zvi, Google DeepMind, Hugging Face, and Last Week in AI.
+Done:
+- ✅ **More sources** — Simon Willison, Interconnects, Import AI, Ahead of AI, Zvi,
+  Google DeepMind, Hugging Face, Last Week in AI.
 - ✅ **Feedback loop** — engagement-aware dedup + taste enrichment from your Reader library.
 - ✅ **X/Twitter** — pluggable RSSHub-backed collector (off until configured).
+- ✅ **GitHub trending** — newly-popular AI repos via the Search API.
+- ✅ **Anthropic blog** — via a community mirror feed (Meta has no feed; skipped).
+- ✅ **Audio transcription** — Deepgram + Claude web search mines spoken citations
+  (off until `DEEPGRAM_API_KEY` is set).
+- ✅ **Diversity cap** — max 3 items per source per digest.
 
-Still open:
-- **Audio transcription**: for podcasts whose show notes lack cited links (AI Daily
-  Brief, Everyday AI), transcribe via YouTube captions or Deepgram/Whisper to mine
-  spoken citations and enrich the taste profile. Needs `yt-dlp`/an ASR key, so it's
-  left as an explicit setup step rather than shipped half-wired.
-- **GitHub trending** and Anthropic/Meta blogs (no official RSS — need a mirror).
+Still open / future:
+- **Star-velocity trending** for GitHub (the Search API has no real trending signal;
+  we approximate with newly-created, star-sorted repos).
+- **Taste enrichment from transcripts** — currently transcripts yield candidate
+  articles; folding their topics back into the profile is a natural next step.

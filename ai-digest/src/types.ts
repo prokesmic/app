@@ -10,6 +10,8 @@ export interface SourceDef {
   weight: number;
   /** If true, the collector mines outbound links from item descriptions (annotated show notes). */
   mineLinks?: boolean;
+  /** If true, transcribe recent episodes (via Deepgram) and mine spoken citations. */
+  transcribe?: boolean;
 }
 
 export interface Candidate {

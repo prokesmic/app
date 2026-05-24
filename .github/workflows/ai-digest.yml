@@ -56,6 +56,9 @@ jobs:
           READWISE_FEEDBACK: ${{ vars.READWISE_FEEDBACK || '1' }}
           X_RSSHUB_BASE: ${{ vars.X_RSSHUB_BASE }}
           X_HANDLES: ${{ vars.X_HANDLES }}
+          DEEPGRAM_API_KEY: ${{ secrets.DEEPGRAM_API_KEY }}
+          TRANSCRIBE_LIMIT: ${{ vars.TRANSCRIBE_LIMIT || '1' }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ARGS="digest"
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
@@ -67,7 +70,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add state/seen.json state/taste-profile.json
+          git add state/seen.json state/taste-profile.json state/transcribed.json
           if git diff --staged --quiet; then
             echo "No state changes to commit."
           else

@@ -21,6 +21,8 @@ export const SOURCES: SourceDef[] = [
   // --- AI lab / company blogs ---
   { id: "openai", name: "OpenAI", kind: "lab", feed: "https://openai.com/news/rss.xml", weight: 0.85 },
   { id: "deepmind", name: "Google DeepMind", kind: "lab", feed: "https://deepmind.google/blog/rss.xml", weight: 0.85 },
+  // Anthropic has no official feed; this is a community-maintained mirror (may break).
+  { id: "anthropic", name: "Anthropic", kind: "lab", feed: "https://raw.githubusercontent.com/taobojlen/anthropic-rss-feed/main/anthropic_news_rss.xml", weight: 0.85 },
   { id: "huggingface", name: "Hugging Face", kind: "lab", feed: "https://huggingface.co/blog/feed.xml", weight: 0.7 },
 
   // --- Papers ---
@@ -29,8 +31,8 @@ export const SOURCES: SourceDef[] = [
   // --- Podcasts: taste signal + (where flagged) cited-link mining ---
   { id: "latentspace", name: "Latent Space", kind: "podcast", feed: "https://www.latent.space/feed", weight: 0.9, mineLinks: true },
   { id: "lastweekinai", name: "Last Week in AI", kind: "podcast", feed: "https://lastweekin.ai/feed", weight: 0.8, mineLinks: true },
-  { id: "aidailybrief", name: "The AI Daily Brief", kind: "podcast", feed: "https://anchor.fm/s/f7cac464/podcast/rss", weight: 0.8, mineLinks: true },
-  { id: "everydayai", name: "Everyday AI", kind: "podcast", feed: "https://rss.buzzsprout.com/2175779.rss", weight: 0.7 },
+  { id: "aidailybrief", name: "The AI Daily Brief", kind: "podcast", feed: "https://anchor.fm/s/f7cac464/podcast/rss", weight: 0.8, mineLinks: true, transcribe: true },
+  { id: "everydayai", name: "Everyday AI", kind: "podcast", feed: "https://rss.buzzsprout.com/2175779.rss", weight: 0.7, transcribe: true },
   { id: "aishow", name: "The Artificial Intelligence Show", kind: "podcast", feed: "https://feeds.megaphone.fm/marketingai", weight: 0.7 },
 ];
 
@@ -82,9 +84,20 @@ export const env = {
   // Point X_RSSHUB_BASE at a self-hosted RSSHub instance, e.g. https://rsshub.example.com
   xRsshubBase: (process.env.X_RSSHUB_BASE ?? "").replace(/\/$/, ""),
   xHandles: parseHandles(),
+  // Podcast transcription (v2, off unless a Deepgram key is set). Mines spoken
+  // citations from podcasts whose show notes don't carry article links.
+  deepgramKey: process.env.DEEPGRAM_API_KEY ?? "",
+  // Max episodes to transcribe per podcast per run (caps ASR + search cost).
+  transcribeLimit: Number(process.env.TRANSCRIBE_LIMIT || "1"),
+  // Optional GitHub token to raise the trending-search rate limit (works unauth too).
+  githubToken: process.env.GITHUB_TOKEN ?? "",
 };
+
+export const TRANSCRIBE_PODCASTS = SOURCES.filter((s) => s.transcribe);
 
 /** Candidates older than this many days are dropped before ranking. */
 export const MAX_AGE_DAYS = 4;
 /** How many candidates survive the heuristic prefilter and go to the LLM reranker. */
 export const RERANK_POOL = 40;
+/** Max items any single source may contribute to one digest, for a varied mix. */
+export const PER_SOURCE_CAP = 3;

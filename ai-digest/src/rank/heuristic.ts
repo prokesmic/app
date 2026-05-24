@@ -2,7 +2,15 @@ import type { Candidate, ScoredCandidate, TasteProfile } from "../types.js";
 import { SOURCES, SEED_KEYWORDS, PREFERRED_DOMAINS_SEED } from "../config.js";
 import { domainOf } from "../util/url.js";
 
-const weightOf = new Map(SOURCES.map((s) => [s.id.replace(/:cited$/, ""), s.weight]));
+const weightOf = new Map(SOURCES.map((s) => [s.id, s.weight]));
+
+/** Resolve a (possibly synthetic) sourceId to a heuristic weight. */
+function sourceWeight(sourceId: string): number {
+  if (sourceId === "github") return 0.6;
+  if (sourceId.startsWith("x:")) return 0.8;
+  const base = sourceId.replace(/:(cited|transcript)$/, "");
+  return weightOf.get(base) ?? 0.5;
+}
 
 function recencyScore(iso?: string): number {
   if (!iso) return 0.4;
@@ -28,7 +36,7 @@ export function heuristicScore(c: Candidate, profile: TasteProfile | null): Scor
   const kwHits = keywords.filter((k) => hay.includes(k)).length;
   const kwScore = Math.min(1, kwHits / 4);
 
-  const srcWeight = weightOf.get(c.sourceId.replace(/:cited$/, "")) ?? 0.5;
+  const srcWeight = sourceWeight(c.sourceId);
   const domainBoost = domains.includes(domainOf(c.url)) ? 0.15 : 0;
   const authorBoost = authors.some((a) => (c.author ?? "").toLowerCase().includes(a)) ? 0.15 : 0;
   const corroborationBoost = Math.min(0.2, (c.corroboration - 1) * 0.1);
