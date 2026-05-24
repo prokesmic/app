@@ -53,6 +53,9 @@ jobs:
           DIGEST_LIMIT: ${{ vars.DIGEST_LIMIT || '10' }}
           READWISE_LOCATION: ${{ vars.READWISE_LOCATION || 'feed' }}
           READWISE_TAGS: ${{ vars.READWISE_TAGS || 'ai-digest' }}
+          READWISE_FEEDBACK: ${{ vars.READWISE_FEEDBACK || '1' }}
+          X_RSSHUB_BASE: ${{ vars.X_RSSHUB_BASE }}
+          X_HANDLES: ${{ vars.X_HANDLES }}
         run: |
           ARGS="digest"
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi

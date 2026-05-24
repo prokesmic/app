@@ -2,6 +2,7 @@ import type { Candidate } from "../types.js";
 import { SOURCES, MAX_AGE_DAYS } from "../config.js";
 import { collectRss } from "./rss.js";
 import { collectHackerNews } from "./hackernews.js";
+import { collectX } from "./x.js";
 import { log } from "../util/log.js";
 
 /** Run every collector, then merge duplicates (boosting corroboration). */
@@ -9,6 +10,7 @@ export async function collectAll(): Promise<Candidate[]> {
   const batches = await Promise.all([
     ...SOURCES.map((s) => collectRss(s)),
     collectHackerNews(),
+    collectX(),
   ]);
   const all = batches.flat();
   log(`collected ${all.length} raw items from ${batches.length} sources`);

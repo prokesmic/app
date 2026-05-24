@@ -74,12 +74,15 @@ const PROFILE_SCHEMA = {
  * Build a taste profile from ~30 days of the reader's podcasts + followed authors.
  * Falls back to the seed profile if there's no API key or the call fails.
  */
-export async function buildProfile(): Promise<TasteProfile> {
+export async function buildProfile(engagedTitles: string[] = []): Promise<TasteProfile> {
   if (!env.anthropicKey) {
     log("no ANTHROPIC_API_KEY — using seed taste profile");
     return seedProfile();
   }
-  const corpus = await gatherCorpus();
+  let corpus = await gatherCorpus();
+  if (engagedTitles.length) {
+    corpus += `\n\n## Articles you saved & engaged with in Readwise (strong positive signal)\n${engagedTitles.map((t) => `- ${t}`).join("\n")}`;
+  }
   if (!corpus) {
     warn("empty bootstrap corpus — using seed profile");
     return seedProfile();

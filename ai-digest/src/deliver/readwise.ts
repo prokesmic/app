@@ -13,7 +13,13 @@ async function saveOne(item: ScoredCandidate): Promise<SaveResult> {
     author: item.author || item.sourceName,
     summary: item.reason,
     location: env.location,
-    category: item.sourceKind === "papers" ? "pdf" : item.sourceKind === "podcast" ? "rss" : "article",
+    category: item.sourceId.startsWith("x:")
+      ? "tweet"
+      : item.sourceKind === "papers"
+        ? "pdf"
+        : item.sourceKind === "podcast"
+          ? "rss"
+          : "article",
     tags: [...env.tags, item.sourceId.replace(/:cited$/, "")],
     saved_using: "ai-digest",
     notes: `ai-digest score ${item.score}/100 — ${item.reason}`,

@@ -11,14 +11,24 @@ export const SOURCES: SourceDef[] = [
   { id: "mollick", name: "Ethan Mollick — One Useful Thing", kind: "author", feed: "https://www.oneusefulthing.org/feed", weight: 1.0 },
   { id: "citrini", name: "Citrini Research", kind: "author", feed: "https://www.citriniresearch.com/feed", weight: 0.9 },
 
+  // --- High-signal AI writers in the same orbit as the podcasts ---
+  { id: "simonw", name: "Simon Willison", kind: "author", feed: "https://simonwillison.net/atom/everything/", weight: 0.9 },
+  { id: "interconnects", name: "Interconnects — Nathan Lambert", kind: "author", feed: "https://www.interconnects.ai/feed", weight: 0.9 },
+  { id: "importai", name: "Import AI — Jack Clark", kind: "author", feed: "https://importai.substack.com/feed", weight: 0.85 },
+  { id: "raschka", name: "Ahead of AI — Sebastian Raschka", kind: "author", feed: "https://magazine.sebastianraschka.com/feed", weight: 0.8 },
+  { id: "zvi", name: "Don't Worry About the Vase — Zvi", kind: "author", feed: "https://thezvi.substack.com/feed", weight: 0.75 },
+
   // --- AI lab / company blogs ---
   { id: "openai", name: "OpenAI", kind: "lab", feed: "https://openai.com/news/rss.xml", weight: 0.85 },
+  { id: "deepmind", name: "Google DeepMind", kind: "lab", feed: "https://deepmind.google/blog/rss.xml", weight: 0.85 },
+  { id: "huggingface", name: "Hugging Face", kind: "lab", feed: "https://huggingface.co/blog/feed.xml", weight: 0.7 },
 
   // --- Papers ---
   { id: "arxiv", name: "arXiv cs.AI/LG/CL", kind: "papers", feed: "https://rss.arxiv.org/rss/cs.AI+cs.LG+cs.CL", weight: 0.55 },
 
   // --- Podcasts: taste signal + (where flagged) cited-link mining ---
   { id: "latentspace", name: "Latent Space", kind: "podcast", feed: "https://www.latent.space/feed", weight: 0.9, mineLinks: true },
+  { id: "lastweekinai", name: "Last Week in AI", kind: "podcast", feed: "https://lastweekin.ai/feed", weight: 0.8, mineLinks: true },
   { id: "aidailybrief", name: "The AI Daily Brief", kind: "podcast", feed: "https://anchor.fm/s/f7cac464/podcast/rss", weight: 0.8, mineLinks: true },
   { id: "everydayai", name: "Everyday AI", kind: "podcast", feed: "https://rss.buzzsprout.com/2175779.rss", weight: 0.7 },
   { id: "aishow", name: "The Artificial Intelligence Show", kind: "podcast", feed: "https://feeds.megaphone.fm/marketingai", weight: 0.7 },
@@ -45,8 +55,18 @@ export const SEED_KEYWORDS = [
 export const PREFERRED_DOMAINS_SEED = [
   "arxiv.org", "openai.com", "anthropic.com", "deepmind.google",
   "oneusefulthing.org", "latent.space", "karpathy.bearblog.dev",
-  "github.com", "huggingface.co",
+  "github.com", "huggingface.co", "simonwillison.net", "interconnects.ai",
+  "importai.substack.com", "magazine.sebastianraschka.com", "lastweekin.ai",
 ];
+
+/** Default X/Twitter handles to follow if the X collector is configured. */
+export const DEFAULT_X_HANDLES = ["karpathy", "emollick", "Citrini7", "mattshumer_", "jack"];
+
+function parseHandles(): string[] {
+  const raw = process.env.X_HANDLES;
+  if (!raw) return DEFAULT_X_HANDLES;
+  return raw.split(",").map((h) => h.trim().replace(/^@/, "")).filter(Boolean);
+}
 
 export const env = {
   readwiseToken: process.env.READWISE_TOKEN ?? "",
@@ -55,6 +75,13 @@ export const env = {
   limit: Number(process.env.DIGEST_LIMIT || "10"),
   location: (process.env.READWISE_LOCATION || "feed") as "new" | "later" | "archive" | "feed",
   tags: (process.env.READWISE_TAGS || "ai-digest").split(",").map((t) => t.trim()).filter(Boolean),
+  // Engagement feedback loop: skip items already in your Reader library and learn
+  // from what you've archived/read. On by default when a token is present.
+  readwiseFeedback: (process.env.READWISE_FEEDBACK ?? "1") !== "0",
+  // Pluggable X/Twitter collector (v2, off unless configured — no cost by default).
+  // Point X_RSSHUB_BASE at a self-hosted RSSHub instance, e.g. https://rsshub.example.com
+  xRsshubBase: (process.env.X_RSSHUB_BASE ?? "").replace(/\/$/, ""),
+  xHandles: parseHandles(),
 };
 
 /** Candidates older than this many days are dropped before ranking. */

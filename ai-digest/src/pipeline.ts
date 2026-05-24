@@ -1,6 +1,7 @@
 import type { ScoredCandidate } from "./types.js";
 import { env, RERANK_POOL } from "./config.js";
 import { collectAll } from "./collect/index.js";
+import { fetchReaderLibrary, engagedTitles } from "./collect/readwiseLibrary.js";
 import { heuristicRank } from "./rank/heuristic.js";
 import { llmRank } from "./rank/llm.js";
 import { buildProfile, seedProfile } from "./taste/bootstrap.js";
@@ -9,7 +10,8 @@ import { loadSeen, saveSeen, loadProfile, saveProfile } from "./state/store.js";
 import { log } from "./util/log.js";
 
 export async function runBootstrap(): Promise<void> {
-  const profile = await buildProfile();
+  const library = await fetchReaderLibrary();
+  const profile = await buildProfile(engagedTitles(library));
   await saveProfile(profile);
   log("taste profile saved to state/taste-profile.json");
 }
@@ -20,18 +22,22 @@ interface DigestOptions {
 }
 
 export async function runDigest(opts: DigestOptions = {}): Promise<ScoredCandidate[]> {
+  // 0. Pull the existing Reader library (engagement feedback loop).
+  const library = await fetchReaderLibrary();
+  const inLibrary = new Set(library.map((d) => d.key));
+
   // 1. Taste profile (build on first run or when asked to refresh).
   let profile = await loadProfile();
   if (!profile || opts.refreshProfile) {
-    profile = await buildProfile();
+    profile = await buildProfile(engagedTitles(library));
     await saveProfile(profile);
   }
   const effectiveProfile = profile ?? seedProfile();
 
-  // 2. Collect + drop anything already delivered.
+  // 2. Collect + drop anything already delivered OR already in the library.
   const seen = await loadSeen();
-  const candidates = (await collectAll()).filter((c) => !seen.items[c.key]);
-  log(`${candidates.length} candidates after removing previously-seen items`);
+  const candidates = (await collectAll()).filter((c) => !seen.items[c.key] && !inLibrary.has(c.key));
+  log(`${candidates.length} candidates after removing seen + already-in-library items`);
   if (candidates.length === 0) return [];
 
   // 3. Heuristic prefilter -> small pool -> LLM rerank (fallback to heuristic).

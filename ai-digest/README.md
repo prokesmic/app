@@ -34,15 +34,31 @@ the repository root.
 If `ANTHROPIC_API_KEY` is unset, it falls back to the heuristic ranker and a seed
 taste profile, so it still runs end-to-end (useful for testing).
 
-## Sources (v1)
+## Sources
 
-Followed authors: **Karpathy**, **Ethan Mollick** (One Useful Thing), **Citrini Research**.
-Labs/papers: **OpenAI**, **arXiv** (cs.AI/LG/CL). Aggregator: **Hacker News**.
+Followed authors: **Karpathy**, **Ethan Mollick** (One Useful Thing), **Citrini Research**,
+**Simon Willison**, **Interconnects** (Nathan Lambert), **Import AI** (Jack Clark),
+**Ahead of AI** (Sebastian Raschka), **Don't Worry About the Vase** (Zvi).
+Labs: **OpenAI**, **Google DeepMind**, **Hugging Face**. Papers: **arXiv** (cs.AI/LG/CL).
+Aggregator: **Hacker News**.
 Podcasts (taste signal + cited-link mining where useful): **Latent Space**,
-**The AI Daily Brief**, **Everyday AI**, **The Artificial Intelligence Show**.
+**Last Week in AI**, **The AI Daily Brief**, **Everyday AI**, **The Artificial Intelligence Show**.
 
-> **X/Twitter is intentionally excluded in v1** (Matt Shumer & Jack Dorsey posts).
-> Reading tweets now requires a paid/fragile path — see "Roadmap" below.
+Add or reweight any source in `src/config.ts`.
+
+### Engagement feedback loop
+
+When `READWISE_TOKEN` is set, each run pulls your existing Reader library to (1) avoid
+recommending anything you've already saved and (2) learn from what you've **archived or
+read** — those titles become a positive signal the next time the taste profile is built
+(`--refresh-profile`). Disable with `READWISE_FEEDBACK=0`.
+
+### X/Twitter (optional, off by default)
+
+Reading tweets (e.g. Matt Shumer, Jack Dorsey) requires a paid X API or a self-hosted
+**RSSHub** instance. Set `X_RSSHUB_BASE` to your RSSHub URL to pull posts from
+`X_HANDLES`; leave it blank and the X collector is a no-op (no cost). Karpathy's and
+Mollick's essays already arrive via their RSS feeds regardless.
 
 ## Setup
 
@@ -91,14 +107,17 @@ external infrastructure). To enable it:
   call per run reranks ~40 candidates; the taste profile is the cached prefix.
 - Everything else (RSS, HN, Readwise) is free.
 
-## Roadmap (v2 ideas)
+## Roadmap
 
-- **X/Twitter**: add Shumer/Dorsey/Karpathy posts via a third-party X API or a
-  self-hosted RSSHub instance (cost/fragility tradeoff — deferred from v1).
+Done since v1:
+- ✅ **More sources** — added Simon Willison, Interconnects, Import AI, Ahead of AI,
+  Zvi, Google DeepMind, Hugging Face, and Last Week in AI.
+- ✅ **Feedback loop** — engagement-aware dedup + taste enrichment from your Reader library.
+- ✅ **X/Twitter** — pluggable RSSHub-backed collector (off until configured).
+
+Still open:
 - **Audio transcription**: for podcasts whose show notes lack cited links (AI Daily
   Brief, Everyday AI), transcribe via YouTube captions or Deepgram/Whisper to mine
-  spoken citations and enrich the taste profile.
-- **More sources**: Anthropic/DeepMind/Meta blogs (no official RSS — needs a mirror),
-  Last Week in AI, GitHub trending.
-- **Feedback loop**: read back Readwise highlights/archives to learn what you
-  actually engaged with and sharpen the taste profile over time.
+  spoken citations and enrich the taste profile. Needs `yt-dlp`/an ASR key, so it's
+  left as an explicit setup step rather than shipped half-wired.
+- **GitHub trending** and Anthropic/Meta blogs (no official RSS — need a mirror).
