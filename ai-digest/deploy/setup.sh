@@ -37,6 +37,7 @@ if ! grep -qE '^READWISE_TOKEN=.+' .env; then
 fi
 
 say "5/6 Building taste profile with Gemma + a dry-run"
+set -a; . ./.env; set +a
 npm run bootstrap
 npm run dry-run
 
