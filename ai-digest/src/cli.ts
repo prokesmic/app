@@ -1,13 +1,7 @@
+import "./util/env-load.js"; // must precede any import that reads process.env
 import { runBootstrap, runDigest } from "./pipeline.js";
 import { collectAll } from "./collect/index.js";
 import { log } from "./util/log.js";
-
-// Load a local .env if present (Node >= 20.12). Safe no-op if the file is missing.
-try {
-  process.loadEnvFile(new URL("../.env", import.meta.url));
-} catch {
-  /* no .env file — rely on the ambient environment */
-}
 
 const cmd = process.argv[2];
 const flags = new Set(process.argv.slice(3));
