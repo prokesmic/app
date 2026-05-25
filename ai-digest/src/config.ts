@@ -25,6 +25,11 @@ export const SOURCES: SourceDef[] = [
   { id: "anthropic", name: "Anthropic", kind: "lab", feed: "https://raw.githubusercontent.com/taobojlen/anthropic-rss-feed/main/anthropic_news_rss.xml", weight: 0.85 },
   { id: "huggingface", name: "Hugging Face", kind: "lab", feed: "https://huggingface.co/blog/feed.xml", weight: 0.7 },
 
+  // --- Mainstream tech press (AI-only sub-feeds) ---
+  { id: "techcrunch", name: "TechCrunch — AI", kind: "lab", feed: "https://techcrunch.com/category/artificial-intelligence/feed/", weight: 0.65 },
+  { id: "verge", name: "The Verge — AI", kind: "lab", feed: "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml", weight: 0.65 },
+  { id: "axios", name: "Axios — AI", kind: "lab", feed: "https://api.axios.com/feed/tag/artificial-intelligence", weight: 0.6 },
+
   // --- Papers ---
   { id: "arxiv", name: "arXiv cs.AI/LG/CL", kind: "papers", feed: "https://rss.arxiv.org/rss/cs.AI+cs.LG+cs.CL", weight: 0.55 },
 
@@ -59,6 +64,7 @@ export const PREFERRED_DOMAINS_SEED = [
   "oneusefulthing.org", "latent.space", "karpathy.bearblog.dev",
   "github.com", "huggingface.co", "simonwillison.net", "interconnects.ai",
   "importai.substack.com", "magazine.sebastianraschka.com", "lastweekin.ai",
+  "techcrunch.com", "theverge.com", "axios.com",
 ];
 
 /** Default X/Twitter handles to follow if the X collector is configured. */
@@ -102,8 +108,8 @@ export const TRANSCRIBE_PODCASTS = SOURCES.filter((s) => s.transcribe);
 /** Candidates older than this many days are dropped before ranking. */
 export const MAX_AGE_DAYS = 4;
 /** How many candidates survive the heuristic prefilter and go to the LLM reranker. */
-export const RERANK_POOL = 40;
+export const RERANK_POOL = Number(process.env.RERANK_POOL || "40");
 /** Max items any single source may contribute to one digest, for a varied mix. */
-export const PER_SOURCE_CAP = 5;
+export const PER_SOURCE_CAP = Number(process.env.PER_SOURCE_CAP || "5");
 /** Rebuild the taste profile automatically once it's older than this many days. */
 export const PROFILE_MAX_AGE_DAYS = 7;
