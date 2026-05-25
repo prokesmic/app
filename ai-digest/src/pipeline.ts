@@ -49,7 +49,20 @@ export async function runDigest(opts: DigestOptions = {}): Promise<ScoredCandida
   if (candidates.length === 0) return [];
 
   // 3. Heuristic prefilter -> small pool -> LLM rerank (fallback to heuristic).
-  const prefiltered = heuristicRank(candidates, effectiveProfile).slice(0, RERANK_POOL);
+  // Cap each source's share of the prefilter pool at 2x the final per-source cap
+  // so a source with high keyword density (e.g. arXiv) doesn't starve other
+  // sources of any chance to be considered by Gemma.
+  const prefilterCap = PER_SOURCE_CAP * 2;
+  const prefilterPerSource = new Map<string, number>();
+  const prefiltered: ScoredCandidate[] = [];
+  for (const c of heuristicRank(candidates, effectiveProfile)) {
+    const base = c.sourceId.replace(/:(cited|transcript)$/, "");
+    const n = prefilterPerSource.get(base) ?? 0;
+    if (n >= prefilterCap) continue;
+    prefilterPerSource.set(base, n + 1);
+    prefiltered.push(c);
+    if (prefiltered.length >= RERANK_POOL) break;
+  }
   const ranked = (await llmRank(prefiltered, effectiveProfile)) ?? heuristicRank(prefiltered, effectiveProfile);
 
   // 4. Top N for this run, with a per-source cap so no single feed floods the digest.
