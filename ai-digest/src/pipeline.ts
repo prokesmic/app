@@ -9,6 +9,7 @@ import { buildProfile, seedProfile } from "./taste/bootstrap.js";
 import { deliverToReadwise } from "./deliver/readwise.js";
 import { loadSeen, saveSeen, loadProfile, saveProfile } from "./state/store.js";
 import { log } from "./util/log.js";
+import { notify } from "./util/notify.js";
 
 export async function runBootstrap(): Promise<void> {
   const library = await fetchReaderLibrary();
@@ -74,6 +75,12 @@ export async function runDigest(opts: DigestOptions = {}): Promise<ScoredCandida
   const now = new Date().toISOString();
   for (const p of picks) seen.items[p.key] = now;
   await saveSeen(seen);
-  await deliverToReadwise(picks);
+  const delivered = await deliverToReadwise(picks);
+
+  // 6. Push notification with count + top 3 titles (no-op if NTFY_TOPIC unset).
+  const top3 = [...picks].sort((a, b) => b.score - a.score).slice(0, 3);
+  const body = top3.map((p) => `[${p.score}] ${p.title}`).join("\n");
+  await notify(`ai-digest: ${delivered} items saved`, body);
+
   return picks;
 }
