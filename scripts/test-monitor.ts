@@ -56,6 +56,11 @@ async function run() {
   mockFetch("<html>do košíku ... vyprodáno</html>");
   assert("conservative when conflicting", (await checkTarget(t)).status === "OUT_OF_STOCK");
 
+  // search/listing pages never alert, even if "add to cart" is present
+  const search: TargetInput = { ...t, config: { ...t.config, searchPage: true } };
+  mockFetch("<html>many products, all with do košíku buttons</html>");
+  assert("search page never in stock", (await checkTarget(search)).status === "UNKNOWN");
+
   console.log("json-ld");
   const j: TargetInput = { ...t, strategy: "json-ld", config: {} };
   mockFetch(

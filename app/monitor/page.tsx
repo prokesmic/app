@@ -80,8 +80,10 @@ export default async function MonitorPage() {
           <CardContent className="flex items-start gap-3 py-4 text-sm">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
             <span>
-              {data.totals.needsConfig} Apple target(s) need a regional part number for the
-              base M3 Ultra config. Click the ✎ edit button on those rows (or see MONITOR.md).
+              {data.totals.needsConfig} target(s) need setup before they can alert: Apple
+              targets need a regional part number, and reseller targets need an exact product
+              URL (search/listing pages never alert, to avoid false positives). Use the ✎ edit
+              button on flagged rows — see MONITOR.md.
             </span>
           </CardContent>
         </Card>
@@ -205,7 +207,7 @@ export default async function MonitorPage() {
                     </a>
                     <div className="text-xs text-muted-foreground">{t.label}</div>
                     {t.needsConfig ? (
-                      <span className="text-xs text-amber-600">⚠ needs part number</span>
+                      <span className="text-xs text-amber-600">⚠ {t.needsConfigReason}</span>
                     ) : null}
                     {t.error ? <div className="text-xs text-destructive">{t.error}</div> : null}
                   </TableCell>

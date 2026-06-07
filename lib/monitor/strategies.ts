@@ -90,6 +90,13 @@ function parsePrice(raw: string | undefined | null): number | null {
 // Robust default that works for most reseller pages.
 async function httpMatch(target: TargetInput): Promise<CheckResult> {
   const cfg = target.config as HttpMatchConfig;
+  // Listing/search URLs can't be trusted either way — don't risk a false alert.
+  if (cfg.searchPage) {
+    return {
+      status: "UNKNOWN",
+      rawSignal: "search/listing page — set the exact product URL to enable alerts",
+    };
+  }
   const outcome = await fetchText(target.url, cfg.headers);
   if (!outcome.ok) {
     return {

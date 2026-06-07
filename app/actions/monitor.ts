@@ -27,18 +27,29 @@ export async function updateTargetAction(
   const target = await prisma.monitorTarget.findUnique({ where: { id: targetId } });
   if (!target) throw new Error("Target not found");
 
-  const data: { url?: string; config?: string } = {};
-  if (patch.url && patch.url !== target.url) data.url = patch.url;
-  if (patch.partNumber !== undefined) {
-    let config: Record<string, unknown> = {};
-    try {
-      config = JSON.parse(target.config || "{}");
-    } catch {
-      config = {};
-    }
-    config.partNumber = patch.partNumber;
-    data.config = JSON.stringify(config);
+  let config: Record<string, unknown> = {};
+  try {
+    config = JSON.parse(target.config || "{}");
+  } catch {
+    config = {};
   }
+  let configChanged = false;
+
+  const data: { url?: string; config?: string } = {};
+  if (patch.url && patch.url !== target.url) {
+    data.url = patch.url;
+    // A pasted product URL means this is no longer a search/listing page —
+    // clear the guard so detection (and alerts) turn on.
+    if (config.searchPage) {
+      config.searchPage = false;
+      configChanged = true;
+    }
+  }
+  if (patch.partNumber) {
+    config.partNumber = patch.partNumber;
+    configChanged = true;
+  }
+  if (configChanged) data.config = JSON.stringify(config);
   if (Object.keys(data).length > 0) {
     await prisma.monitorTarget.update({ where: { id: targetId }, data });
     revalidatePath("/monitor");

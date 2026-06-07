@@ -31,6 +31,11 @@ export interface TargetInput {
 // --- Strategy config shapes -------------------------------------------------
 
 export interface HttpMatchConfig {
+  // When the URL is a search/category listing rather than a single product
+  // page, generic markers like "add to cart" are meaningless (they belong to
+  // other products on the page). Such targets always report UNKNOWN and are
+  // flagged "needs product URL" on the dashboard so they never false-alert.
+  searchPage?: boolean;
   // If ANY of these (case-insensitive) match the page body => IN_STOCK.
   inStock?: string[];
   // If ANY of these match => OUT_OF_STOCK. Evaluated before inStock by default

@@ -142,7 +142,7 @@ export const TARGETS: TargetSeed[] = [
     country: "CZ",
     currency: "CZK",
     strategy: "http-match",
-    config: { ...PHRASES.CZ, priceRegex: '"price"\\s*:\\s*"?([\\d.,\\s]+)"?' },
+    config: { ...PHRASES.CZ, searchPage: true, priceRegex: '"price"\\s*:\\s*"?([\\d.,\\s]+)"?' },
   },
   {
     sellerSlug: "czc-cz",
@@ -151,7 +151,7 @@ export const TARGETS: TargetSeed[] = [
     country: "CZ",
     currency: "CZK",
     strategy: "http-match",
-    config: { ...PHRASES.CZ },
+    config: { ...PHRASES.CZ, searchPage: true },
   },
   {
     sellerSlug: "iwant-cz",
@@ -160,7 +160,7 @@ export const TARGETS: TargetSeed[] = [
     country: "CZ",
     currency: "CZK",
     strategy: "http-match",
-    config: { ...PHRASES.CZ },
+    config: { ...PHRASES.CZ, searchPage: true },
   },
   {
     sellerSlug: "datart-cz",
@@ -169,7 +169,7 @@ export const TARGETS: TargetSeed[] = [
     country: "CZ",
     currency: "CZK",
     strategy: "http-match",
-    config: { ...PHRASES.CZ },
+    config: { ...PHRASES.CZ, searchPage: true },
   },
 
   // ---------------- US resellers (http-match / json-ld) ----------------
@@ -180,7 +180,7 @@ export const TARGETS: TargetSeed[] = [
     country: "US",
     currency: "USD",
     strategy: "http-match",
-    config: { ...PHRASES.US },
+    config: { ...PHRASES.US, searchPage: true },
   },
   {
     sellerSlug: "adorama-us",
@@ -189,7 +189,7 @@ export const TARGETS: TargetSeed[] = [
     country: "US",
     currency: "USD",
     strategy: "http-match",
-    config: { ...PHRASES.US },
+    config: { ...PHRASES.US, searchPage: true },
   },
   {
     sellerSlug: "bestbuy-us",
@@ -198,7 +198,7 @@ export const TARGETS: TargetSeed[] = [
     country: "US",
     currency: "USD",
     strategy: "http-match",
-    config: { ...PHRASES.US },
+    config: { ...PHRASES.US, searchPage: true },
   },
   {
     sellerSlug: "amazon-us",
@@ -208,6 +208,7 @@ export const TARGETS: TargetSeed[] = [
     currency: "USD",
     strategy: "http-match",
     config: {
+      searchPage: true, // replace url with the ASIN product page (sold by Amazon) to enable
       inStock: ["add to cart"],
       // Amazon: require first-party sold-by-Amazon to honour the trust policy.
       outOfStock: ["currently unavailable", "out of stock", "see all buying options"],
@@ -222,7 +223,7 @@ export const TARGETS: TargetSeed[] = [
     country: "DE",
     currency: "EUR",
     strategy: "http-match",
-    config: { ...PHRASES.DE },
+    config: { ...PHRASES.DE, searchPage: true },
   },
   {
     sellerSlug: "cyberport-de",
@@ -231,7 +232,7 @@ export const TARGETS: TargetSeed[] = [
     country: "DE",
     currency: "EUR",
     strategy: "http-match",
-    config: { ...PHRASES.DE },
+    config: { ...PHRASES.DE, searchPage: true },
   },
   {
     sellerSlug: "gravis-de",
@@ -240,7 +241,7 @@ export const TARGETS: TargetSeed[] = [
     country: "DE",
     currency: "EUR",
     strategy: "http-match",
-    config: { ...PHRASES.DE },
+    config: { ...PHRASES.DE, searchPage: true },
   },
   {
     sellerSlug: "amazon-de",
@@ -250,6 +251,7 @@ export const TARGETS: TargetSeed[] = [
     currency: "EUR",
     strategy: "http-match",
     config: {
+      searchPage: true, // replace url with the ASIN product page (sold by Amazon) to enable
       inStock: ["in den einkaufswagen", "in den warenkorb"],
       outOfStock: ["derzeit nicht verfügbar", "nicht verfügbar", "alle kaufoptionen"],
     },
@@ -263,7 +265,7 @@ export const TARGETS: TargetSeed[] = [
     country: "CH",
     currency: "CHF",
     strategy: "http-match",
-    config: { ...PHRASES.CH },
+    config: { ...PHRASES.CH, searchPage: true },
   },
   {
     sellerSlug: "microspot-ch",
@@ -272,7 +274,7 @@ export const TARGETS: TargetSeed[] = [
     country: "CH",
     currency: "CHF",
     strategy: "http-match",
-    config: { ...PHRASES.CH },
+    config: { ...PHRASES.CH, searchPage: true },
   },
   {
     sellerSlug: "interdiscount-ch",
@@ -281,6 +283,6 @@ export const TARGETS: TargetSeed[] = [
     country: "CH",
     currency: "CHF",
     strategy: "http-match",
-    config: { ...PHRASES.CH },
+    config: { ...PHRASES.CH, searchPage: true },
   },
 ];

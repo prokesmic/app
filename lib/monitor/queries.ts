@@ -13,6 +13,7 @@ export interface TargetView {
   strategy: string;
   isActive: boolean;
   needsConfig: boolean;
+  needsConfigReason: string | null;
   status: string;
   price: number | null;
   rawSignal: string | null;
@@ -53,14 +54,21 @@ export interface MonitorOverview {
   }>;
 }
 
-function configNeedsAttention(strategy: string, config: string): boolean {
-  if (strategy !== "apple-fulfillment") return false;
+// Reasons a target can't yet produce reliable alerts (surfaced on the dashboard).
+function configAttention(strategy: string, config: string): { needs: boolean; reason: string | null } {
+  let parsed: Record<string, unknown> = {};
   try {
-    const parsed = JSON.parse(config || "{}");
-    return !parsed.partNumber;
+    parsed = JSON.parse(config || "{}");
   } catch {
-    return true;
+    return { needs: true, reason: "invalid config" };
   }
+  if (strategy === "apple-fulfillment" && !parsed.partNumber) {
+    return { needs: true, reason: "needs part number" };
+  }
+  if (parsed.searchPage) {
+    return { needs: true, reason: "needs product URL" };
+  }
+  return { needs: false, reason: null };
 }
 
 export async function getMonitorOverview(): Promise<MonitorOverview> {
@@ -91,7 +99,8 @@ export async function getMonitorOverview(): Promise<MonitorOverview> {
   const targetViews: TargetView[] = targets.map((t) => {
     const snap = t.snapshots[0];
     const status = snap?.status ?? "PENDING";
-    const needsConfig = configNeedsAttention(t.strategy, t.config);
+    const attention = configAttention(t.strategy, t.config);
+    const needsConfig = attention.needs;
     if (t.isActive) totals.active += 1;
     if (status === "IN_STOCK") totals.inStock += 1;
     else if (status === "OUT_OF_STOCK") totals.outOfStock += 1;
@@ -114,6 +123,7 @@ export async function getMonitorOverview(): Promise<MonitorOverview> {
       strategy: t.strategy,
       isActive: t.isActive,
       needsConfig,
+      needsConfigReason: attention.reason,
       status,
       price: snap?.price ?? null,
       rawSignal: snap?.rawSignal ?? null,
