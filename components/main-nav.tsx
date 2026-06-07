@@ -13,7 +13,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useSession, signOut } from "next-auth/react"
-import { Home, Trophy, Users, PlusSquare, Search, Bell, MessageSquare } from "lucide-react"
+import { Home, Trophy, Users, PlusSquare, Search, Bell, MessageSquare, MonitorSmartphone } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export function MainNav() {
@@ -24,6 +24,7 @@ export function MainNav() {
         { href: "/home", label: "Home", icon: Home },
         { href: "/rankings", label: "Rankings", icon: Trophy },
         { href: "/teams", label: "Teams", icon: Users },
+        { href: "/monitor", label: "Monitor", icon: MonitorSmartphone },
     ]
 
     return (

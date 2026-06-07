@@ -254,3 +254,125 @@ model TeamMember {
   
   @@unique([teamId, userId])
 }
+
+// ============================================================
+// Mac Studio M3 Ultra Availability Monitor
+// A self-contained module that polls trusted sellers across
+// CZ / US / DE / CH and alerts (Telegram) the instant the
+// target configuration comes in stock.
+// ============================================================
+
+model Product {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  specSummary String   // exact config we care about, human readable
+  family      String?  // e.g. "Mac Studio (2025)"
+  createdAt   DateTime @default(now())
+
+  targets     MonitorTarget[]
+}
+
+model Seller {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  country   String   // ISO-2: CZ, US, DE, CH
+  website   String
+  // AUTHORIZED = Apple Store / Apple Authorized Reseller
+  // MARKETPLACE = reputable marketplace (e.g. Amazon sold & shipped by Amazon)
+  trustTier String   @default("AUTHORIZED")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  targets   MonitorTarget[]
+}
+
+model MonitorTarget {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sellerId  String
+  seller    Seller   @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
+  label     String   // e.g. "Apple CZ — Mac Studio M3 Ultra (base)"
+  url       String   // listing URL, also used as the alert deep-link
+  country   String   // ISO-2
+  currency  String   // CZK, USD, EUR, CHF
+
+  // How availability is determined. See lib/monitor/strategies.ts
+  // apple-fulfillment | json-ld | http-match
+  strategy  String   @default("http-match")
+  // JSON-encoded strategy configuration (part numbers, regex matchers, ...)
+  config    String   @default("{}")
+
+  isActive    Boolean @default(true)
+  intervalSec Int     @default(180) // polling cadence hint (seconds)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  snapshots StockSnapshot[]
+  alerts    Alert[]
+
+  @@unique([sellerId, url])
+  @@index([isActive, country])
+}
+
+model StockSnapshot {
+  id       String      @id @default(cuid())
+  targetId String
+  target   MonitorTarget @relation(fields: [targetId], references: [id], onDelete: Cascade)
+  runId    String?
+  run      MonitorRun? @relation(fields: [runId], references: [id], onDelete: SetNull)
+
+  status     String  // IN_STOCK | OUT_OF_STOCK | UNKNOWN | ERROR
+  price      Float?
+  currency   String?
+  rawSignal  String? // matched text/signal, for debugging
+  httpStatus Int?
+  responseMs Int?
+  error      String?
+
+  checkedAt DateTime @default(now())
+
+  alert     Alert?
+
+  @@index([targetId, checkedAt])
+  @@index([status])
+}
+
+model Alert {
+  id         String        @id @default(cuid())
+  targetId   String
+  target     MonitorTarget @relation(fields: [targetId], references: [id], onDelete: Cascade)
+  snapshotId String?       @unique
+  snapshot   StockSnapshot? @relation(fields: [snapshotId], references: [id], onDelete: SetNull)
+
+  channel String  // TELEGRAM | EMAIL | DISCORD | WEBPUSH
+  status  String  @default("PENDING") // PENDING | SENT | FAILED
+  title   String
+  message String
+  error   String?
+
+  createdAt DateTime  @default(now())
+  sentAt    DateTime?
+
+  @@index([targetId, createdAt])
+}
+
+model MonitorRun {
+  id             String    @id @default(cuid())
+  startedAt      DateTime  @default(now())
+  finishedAt     DateTime?
+  trigger        String    @default("manual") // manual | cron | api | watch
+  targetsTotal   Int       @default(0)
+  targetsChecked Int       @default(0)
+  inStockCount   Int       @default(0)
+  errorCount     Int       @default(0)
+  alertsSent     Int       @default(0)
+
+  snapshots StockSnapshot[]
+
+  @@index([startedAt])
+}

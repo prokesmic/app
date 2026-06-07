@@ -1,0 +1,37 @@
+name: Mac Studio M3 Ultra monitor
+
+# Serverless "always-on" option: GitHub Actions pings your deployed app's
+# /api/monitor/run endpoint on a schedule. The deployed app owns the database,
+# so stock-transition detection and alert de-duplication work correctly.
+#
+# Required repo secrets:
+#   MONITOR_URL    e.g. https://your-app.vercel.app/api/monitor/run
+#   MONITOR_SECRET must match the app's MONITOR_SECRET env var
+#
+# Note: GitHub's cron has a 5-minute minimum and can be delayed under load.
+# For sub-minute polling, run `npx tsx scripts/monitor.ts --watch` on a host.
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger monitor run
+        run: |
+          if [ -z "${MONITOR_URL}" ]; then
+            echo "MONITOR_URL secret not set; skipping."
+            exit 0
+          fi
+          code=$(curl -sS -o /tmp/out.json -w "%{http_code}" \
+            -X POST "${MONITOR_URL}" \
+            -H "Authorization: Bearer ${MONITOR_SECRET}")
+          echo "HTTP $code"
+          cat /tmp/out.json || true
+          test "$code" = "200"
+        env:
+          MONITOR_URL: ${{ secrets.MONITOR_URL }}
+          MONITOR_SECRET: ${{ secrets.MONITOR_SECRET }}
