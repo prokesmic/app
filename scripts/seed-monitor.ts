@@ -3,6 +3,7 @@
 //
 //   npx tsx scripts/seed-monitor.ts
 
+import "./load-env";
 import { prisma } from "@/lib/db";
 import { PRODUCT, SELLERS, TARGETS } from "@/lib/monitor/catalog";
 

@@ -7,6 +7,7 @@
 // Use --watch on an always-on host (VPS, Raspberry Pi, a screen/tmux session).
 // For serverless scheduling, hit /api/monitor/run instead (see MONITOR.md).
 
+import "./load-env";
 import { prisma } from "@/lib/db";
 import { configuredChannels } from "@/lib/notify";
 import { runMonitor } from "@/lib/monitor/runner";

@@ -6,7 +6,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "monitor:setup": "bash scripts/setup-local.sh",
+    "monitor": "tsx scripts/monitor.ts --once",
+    "monitor:watch": "tsx scripts/monitor.ts --watch --interval=120",
+    "monitor:seed": "tsx scripts/seed-monitor.ts",
+    "monitor:test": "tsx scripts/test-monitor.ts",
+    "monitor:install-service": "bash scripts/install-launchagent.sh",
+    "monitor:uninstall-service": "bash scripts/uninstall-launchagent.sh"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -25,6 +32,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "dotenv": "^16.6.1",
     "lucide-react": "^0.555.0",
     "next": "16.0.5",
     "next-auth": "^4.24.13",
