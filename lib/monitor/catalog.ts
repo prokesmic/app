@@ -104,7 +104,7 @@ export const TARGETS: TargetSeed[] = [
     country: "CZ",
     currency: "CZK",
     strategy: "apple-fulfillment",
-    config: { partNumber: "", postalCode: "11000" }, // TODO: regional part number
+    config: { partNumber: "MU973CZ/A", postalCode: "11000" },
   },
   {
     sellerSlug: "apple-us",
@@ -113,7 +113,7 @@ export const TARGETS: TargetSeed[] = [
     country: "US",
     currency: "USD",
     strategy: "apple-fulfillment",
-    config: { partNumber: "", postalCode: "10001" },
+    config: { partNumber: "MU973LL/A", postalCode: "10001" },
   },
   {
     sellerSlug: "apple-de",
@@ -122,7 +122,7 @@ export const TARGETS: TargetSeed[] = [
     country: "DE",
     currency: "EUR",
     strategy: "apple-fulfillment",
-    config: { partNumber: "", postalCode: "10115" },
+    config: { partNumber: "MU973D/A", postalCode: "10115" },
   },
   {
     sellerSlug: "apple-ch",
@@ -131,18 +131,18 @@ export const TARGETS: TargetSeed[] = [
     country: "CH",
     currency: "CHF",
     strategy: "apple-fulfillment",
-    config: { partNumber: "", postalCode: "8001" },
+    config: { partNumber: "MU973SM/A", postalCode: "8001" },
   },
 
   // ---------------- CZ resellers (http-match) ----------------
   {
     sellerSlug: "alza-cz",
     label: "Alza.cz — Mac Studio M3 Ultra",
-    url: "https://www.alza.cz/apple-mac-studio-m3-ultra",
+    url: "https://www.alza.cz/mac-studio-m3-ultra-d12829392.htm",
     country: "CZ",
     currency: "CZK",
     strategy: "http-match",
-    config: { ...PHRASES.CZ, searchPage: true, priceRegex: '"price"\\s*:\\s*"?([\\d.,\\s]+)"?' },
+    config: { ...PHRASES.CZ, priceRegex: '"price"\\s*:\\s*"?([\\d.,\\s]+)"?' },
   },
   {
     sellerSlug: "czc-cz",
@@ -165,22 +165,22 @@ export const TARGETS: TargetSeed[] = [
   {
     sellerSlug: "datart-cz",
     label: "Datart — Mac Studio M3 Ultra",
-    url: "https://www.datart.cz/mac-studio.html",
+    url: "https://www.datart.cz/pc-mini-apple-mac-studio-m3-ultra-28-cpu-60-gpu-96gb-1tb-mu973cz-a.html",
     country: "CZ",
     currency: "CZK",
     strategy: "http-match",
-    config: { ...PHRASES.CZ, searchPage: true },
+    config: { ...PHRASES.CZ },
   },
 
   // ---------------- US resellers (http-match / json-ld) ----------------
   {
     sellerSlug: "bhphoto-us",
     label: "B&H — Mac Studio M3 Ultra",
-    url: "https://www.bhphotovideo.com/c/search?q=mac%20studio%20m3%20ultra",
+    url: "https://www.bhphotovideo.com/c/product/1884037-REG/apple_mu973ll_a_mac_studio_with_m3.html",
     country: "US",
     currency: "USD",
     strategy: "http-match",
-    config: { ...PHRASES.US, searchPage: true },
+    config: { ...PHRASES.US },
   },
   {
     sellerSlug: "adorama-us",
@@ -194,11 +194,11 @@ export const TARGETS: TargetSeed[] = [
   {
     sellerSlug: "bestbuy-us",
     label: "Best Buy — Mac Studio M3 Ultra",
-    url: "https://www.bestbuy.com/site/searchpage.jsp?st=mac+studio+m3+ultra",
+    url: "https://www.bestbuy.com/product/apple-mac-studio-m3-ultra-1tb-ssd-silver/JJGCQXRQKY",
     country: "US",
     currency: "USD",
     strategy: "http-match",
-    config: { ...PHRASES.US, searchPage: true },
+    config: { ...PHRASES.US },
   },
   {
     sellerSlug: "amazon-us",
@@ -219,11 +219,11 @@ export const TARGETS: TargetSeed[] = [
   {
     sellerSlug: "mediamarkt-de",
     label: "MediaMarkt — Mac Studio M3 Ultra",
-    url: "https://www.mediamarkt.de/de/search.html?query=mac%20studio%20m3%20ultra",
+    url: "https://www.mediamarkt.de/de/product/_apple-mac-studio-mu973da-macos-mini-pc-mit-apple-m3-ultra-prozessor-96-gb-ram-1-tb-ssd-60-core-gpu-2984495.html",
     country: "DE",
     currency: "EUR",
     strategy: "http-match",
-    config: { ...PHRASES.DE, searchPage: true },
+    config: { ...PHRASES.DE },
   },
   {
     sellerSlug: "cyberport-de",

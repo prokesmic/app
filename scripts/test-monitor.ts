@@ -75,19 +75,19 @@ async function run() {
   assert("json-ld out of stock", (await checkTarget(j)).status === "OUT_OF_STOCK");
 
   console.log("apple-fulfillment");
-  const a: TargetInput = { ...t, strategy: "apple-fulfillment", country: "US", currency: "USD", config: { partNumber: "MU963LL/A" } };
+  const a: TargetInput = { ...t, strategy: "apple-fulfillment", country: "US", currency: "USD", config: { partNumber: "MU973LL/A" } };
   mockFetch(
     JSON.stringify({
       body: {
         content: {
-          deliveryMessage: { "MU963LL/A": { isBuyable: true, regular: { deliveryOptionMessages: [{ displayName: "Delivers Tomorrow" }] } } },
+          deliveryMessage: { "MU973LL/A": { isBuyable: true, regular: { deliveryOptionMessages: [{ displayName: "Delivers Tomorrow" }] } } },
           pickupMessage: { stores: [] },
         },
       },
     }),
   );
   assert("apple in stock (buyable)", (await checkTarget(a)).status === "IN_STOCK");
-  mockFetch(JSON.stringify({ body: { content: { deliveryMessage: { "MU963LL/A": { isBuyable: false } }, pickupMessage: { stores: [] } } } }));
+  mockFetch(JSON.stringify({ body: { content: { deliveryMessage: { "MU973LL/A": { isBuyable: false } }, pickupMessage: { stores: [] } } } }));
   assert("apple out of stock", (await checkTarget(a)).status === "OUT_OF_STOCK");
   const aNoPart: TargetInput = { ...a, config: {} };
   assert("apple needs part number", (await checkTarget(aNoPart)).status === "UNKNOWN");

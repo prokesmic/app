@@ -42,11 +42,13 @@ async function main() {
       strategy: t.strategy,
       config: JSON.stringify(t.config),
     };
-    const existing = await prisma.monitorTarget.findUnique({
-      where: { sellerId_url: { sellerId, url: t.url } },
+    // One target per seller in this catalog — match on seller so a changed URL
+    // updates the existing row instead of creating a duplicate.
+    const existing = await prisma.monitorTarget.findFirst({
+      where: { sellerId, productId: product.id },
     });
     if (existing) {
-      await prisma.monitorTarget.update({ where: { id: existing.id }, data });
+      await prisma.monitorTarget.update({ where: { id: existing.id }, data: { ...data, url: t.url } });
       updated += 1;
     } else {
       await prisma.monitorTarget.create({ data: { ...data, url: t.url } });

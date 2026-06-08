@@ -44,16 +44,21 @@ you won't get spammed when a page flaps.
      copy `chat.id` → `TELEGRAM_CHAT_ID`
    - Verify with the **“Send test alert”** button on `/monitor`.
 
-3. **Fill in the Apple part numbers** (the only required tuning)
-   The four Apple targets need the *regional* part number for the base M3 Ultra
-   config. Find it by configuring the machine on apple.com (CZ/US/DE/CH) and
-   reading the part number from the bag/review step, or via the page's
-   `fulfillment-messages` request in devtools. Paste it via the ✎ button on each
-   Apple row in `/monitor`, or edit `lib/monitor/catalog.ts` and re-seed.
+3. **Apple part numbers — already filled in** ✅
+   The four Apple targets ship with the verified regional part numbers for the
+   base M3 Ultra config: `MU973LL/A` (US), `MU973D/A` (DE), `MU973CZ/A` (CZ),
+   `MU973SM/A` (CH). No action needed unless Apple revises the SKU.
 
-   Reseller targets use search/product URLs that may shift over time — paste the
-   exact product page URL via the ✎ button for the most reliable matching. Any
-   target returning `Unknown` on the dashboard needs its URL/markers adjusted.
+   **Reseller URLs:** verified product pages are pre-set for Alza, Datart,
+   MediaMarkt, B&H and Best Buy. The remaining resellers (CZC, iWant, Adorama,
+   Amazon, Cyberport, Gravis, Digitec, microspot, Interdiscount) still point at
+   search/listing pages and are flagged "needs product URL" on the dashboard —
+   they never alert until you paste an exact product page via the ✎ button.
+
+> **Note on bot protection:** some retailers (and Apple's shop API) block
+> datacenter/cloud IPs with 403/503/541 responses. Run the monitor from a
+> residential IP or a host that isn't blocked; flagged targets showing
+> `Unknown`/`Error` are usually IP-blocked rather than out of stock.
 
 ## Running it always-on
 
