@@ -1,0 +1,5 @@
+node_modules/
+state.json
+shots/
+bundle.js
+*-result.json
