@@ -1,0 +1,18 @@
+{
+  "name": "aura-qa-suite",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Playwright end-to-end QA harness for the AURA / Novartis AI Fluency Platform",
+  "scripts": {
+    "auth": "node tests/00-auth.mjs",
+    "routes": "node tests/10-routes.mjs",
+    "security": "node tests/20-security.mjs",
+    "functional": "node tests/30-functional.mjs",
+    "a11y": "node tests/40-a11y-mobile.mjs",
+    "all": "npm run auth && npm run routes && npm run security && npm run functional && npm run a11y"
+  },
+  "devDependencies": {
+    "playwright": "^1.50.0"
+  }
+}
