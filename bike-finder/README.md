@@ -58,11 +58,41 @@ npm run typecheck
 
 ## Always-on options
 
-1. **GitHub Actions (zero infra)** — [`.github/workflows/bike-finder.yml`](../.github/workflows/bike-finder.yml)
-   runs every 30 min. Add `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` as repo
-   **Actions secrets**. Dedupe state is persisted via `actions/cache`.
-2. **Daemon** — `npm run watch` on any always-on box (VPS, Raspberry Pi,
-   `systemd`/pm2). State persists in `state/seen.json`.
+### macOS (Mac mini / always-on Mac) — recommended
+
+Runs as a `launchd` background service: auto-starts on login, restarts if it
+crashes, no terminal window to keep open. One command:
+
+```bash
+cd bike-finder
+bash scripts/setup-macos.sh
+```
+
+It checks Node, installs dependencies, asks for your Telegram token + chat id
+(writing a private `.env`), then installs and starts the service. After that it
+scans every 30 minutes forever.
+
+```bash
+tail -f state/agent.log                 # watch live activity
+launchctl unload ~/Library/LaunchAgents/com.bikefinder.agent.plist   # stop
+launchctl load   ~/Library/LaunchAgents/com.bikefinder.agent.plist   # start
+bash scripts/uninstall-macos.sh         # remove the service
+```
+
+Note: a LaunchAgent runs while the Mac is logged in (the usual state for an
+always-on Mac mini). Keep the user account logged in.
+
+### GitHub Actions (zero hardware)
+
+[`.github/workflows/bike-finder.yml`](../.github/workflows/bike-finder.yml) runs
+every 30 min on GitHub's servers. Add `TELEGRAM_BOT_TOKEN` and
+`TELEGRAM_CHAT_ID` as repo **Actions secrets**; state persists via
+`actions/cache`.
+
+### Manual daemon
+
+`npm run watch` in a terminal on any always-on box. State persists in
+`state/seen.json`.
 
 ## How dedupe works
 
