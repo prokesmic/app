@@ -69,13 +69,32 @@ export const profile = {
     "domane", "roubaix", "synapse", "endurace", "defy", "roadmachine",
   ],
 
-  /** Positive 11-speed mechanical signals. */
-  goodGroupsets: [
-    "105 r7000", "r7000", "105", // Shimano 105 11s
-    "ultegra r8000", "r8000", "ultegra", // Shimano Ultegra 11s
-    "6800", "5800", // older 11s Ultegra/105
+  /**
+   * CONFIRMED 11-speed signals. Required for an "excellent" verdict because
+   * the trainer has an 11s cassette. R7000/5800 = 105 11s, R8000/6800 =
+   * Ultegra 11s; the explicit "11s / 11 rychlostí" tokens are unambiguous.
+   */
+  confirmedElevenSignals: [
     "11s", "11 s", "11-speed", "11 speed", "11 rychlost", "11rychlost",
-    "2x11", "11 kol", "11k",
+    "11 rychlosti", "2x11", "11 kol", "11k",
+    "r7000", "105 r7000", "5800", // Shimano 105 11s
+    "r8000", "ultegra r8000", "6800", // Shimano Ultegra 11s
+  ],
+
+  /**
+   * Ambiguous groupset mentions: a bare "105" or "Ultegra" could be a 10-speed
+   * (5700 / 6700) on an older bike. Worth a small bonus and a "verify" note,
+   * but NOT enough on its own to be flagged excellent.
+   */
+  ambiguousGroupsetSignals: ["105", "ultegra"],
+
+  /**
+   * 10-speed — hard reject. Incompatible with the 11s cassette on the trainer,
+   * just like 12-speed. 5700 = 105 10s, 6700 = Ultegra 10s.
+   */
+  tenSpeedSignals: [
+    "10s", "10 speed", "10-speed", "10 rychlost", "10rychlost", "10 rychlosti",
+    "2x10", "5700", "6700", "5600", "6600", "105 5700", "ultegra 6700",
   ],
 
   /** Electronic shifting — hard reject (rider wants mechanical). */

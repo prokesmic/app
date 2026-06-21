@@ -52,9 +52,10 @@ function detectSize(rawText: string, normText: string): { size: string | null; m
   return { size: null, match: false };
 }
 
-function detectGroupset(text: string): string | null {
-  for (const g of profile.goodGroupsets) {
-    if (text.includes(normalize(g))) return g;
+/** First matching keyword from a list, or null. */
+function firstMatch(text: string, needles: readonly string[]): string | null {
+  for (const n of needles) {
+    if (text.includes(normalize(n))) return n;
   }
   return null;
 }
@@ -76,11 +77,15 @@ export function scoreListing(listing: Listing): ScoreResult {
   const brand = detectBrand(text);
   const { model, race, endurance } = detectModel(text);
   const { size, match: sizeMatch } = detectSize(raw, text);
-  const groupset = detectGroupset(text);
+  const confirmedGroupset = firstMatch(text, profile.confirmedElevenSignals);
+  const ambiguousGroupset = firstMatch(text, profile.ambiguousGroupsetSignals);
   const electronic = containsAny(text, profile.electronicSignals as unknown as string[]);
   const twelveSpeed = containsAny(text, profile.twelveSpeedSignals as unknown as string[]);
+  const tenSpeed = containsAny(text, profile.tenSpeedSignals as unknown as string[]);
   const nonRoad = containsAny(text, profile.nonRoadSignals as unknown as string[]);
-  const elevenSpeed = !!groupset && !twelveSpeed;
+  // Confirmed 11s only — bare "105"/"Ultegra" is not enough (could be 10s).
+  const elevenSpeed = !!confirmedGroupset && !twelveSpeed && !tenSpeed;
+  const groupset = confirmedGroupset ?? ambiguousGroupset;
   const discreetColor = containsAny(text, profile.discreetColors as unknown as string[]);
   const loudColor = containsAny(text, profile.loudColors as unknown as string[]);
   const likeNew = containsAny(text, profile.likeNewSignals as unknown as string[]);
@@ -103,6 +108,7 @@ export function scoreListing(listing: Listing): ScoreResult {
   if (nonRoad) return reject("Není silniční závodní kolo (MTB/cross/trek/city/e-bike)");
   if (electronic) return reject("Elektronické řazení (Di2/eTap/AXS) — nechceme");
   if (twelveSpeed) return reject("12rychlostní — nekompatibilní s 11s kazetou");
+  if (tenSpeed) return reject("10rychlostní — nekompatibilní s 11s kazetou");
 
   // ---- Points -------------------------------------------------------------
   let score = 0;
@@ -117,9 +123,12 @@ export function scoreListing(listing: Listing): ScoreResult {
     reasons.push(`Endurance geometrie (${model}) — vzdálené Tarmac SL7`);
   }
 
-  if (groupset) {
+  if (confirmedGroupset) {
     score += 3;
-    reasons.push(`11s mechanické řazení (${groupset.toUpperCase()}) ✓`);
+    reasons.push(`Potvrzené 11s mechanické řazení (${confirmedGroupset.toUpperCase()}) ✓`);
+  } else if (ambiguousGroupset) {
+    score += 1;
+    reasons.push(`${ambiguousGroupset.toUpperCase()} uvedeno, ale počet rychlostí nepotvrzen — ověřit, zda 11s (ne 10s)`);
   } else {
     reasons.push("11s řazení nepotvrzeno v inzerátu — ověřit");
   }
