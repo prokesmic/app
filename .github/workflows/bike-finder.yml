@@ -1,0 +1,52 @@
+name: bike-finder
+
+# Always-on scanning via scheduled runs. Pushes only excellent matches to Telegram.
+on:
+  schedule:
+    - cron: "*/30 * * * *" # every 30 minutes (UTC)
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Run without sending Telegram messages"
+        type: boolean
+        default: false
+
+concurrency:
+  group: bike-finder
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: bike-finder
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install deps
+        run: npm install --no-audit --no-fund
+
+      # Persist the dedupe state across runs so the same ad isn't sent twice.
+      - name: Restore seen-state
+        uses: actions/cache@v4
+        with:
+          path: bike-finder/state/seen.json
+          key: bike-finder-seen-${{ github.run_id }}
+          restore-keys: |
+            bike-finder-seen-
+
+      - name: Scan
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            npm run dry
+          else
+            npm run once
+          fi
