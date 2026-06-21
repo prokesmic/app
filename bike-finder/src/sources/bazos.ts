@@ -8,7 +8,9 @@ import { extractByDetailLink } from "./extract.js";
  * /inzerat/<id>/<slug>.php.
  */
 const SEARCH_TERMS = [
+  // Explicitly requested brands
   "specialized tarmac",
+  "specialized venge",
   "specialized allez sprint",
   "trek emonda",
   "trek madone",
@@ -17,6 +19,21 @@ const SEARCH_TERMS = [
   "cannondale supersix",
   "cannondale caad",
   "bmc teammachine",
+  "bmc slr",
+  // Additional top premium race brands
+  "cervelo",
+  "pinarello",
+  "colnago",
+  "scott addict",
+  "scott foil",
+  "wilier",
+  "giant tcr",
+  "giant propel",
+  "bianchi",
+  "look",
+  "factor",
+  "ridley",
+  "orbea orca",
 ];
 
 export const bazos: Source = {

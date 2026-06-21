@@ -79,6 +79,7 @@ export function scoreListing(listing: Listing): ScoreResult {
   const groupset = detectGroupset(text);
   const electronic = containsAny(text, profile.electronicSignals as unknown as string[]);
   const twelveSpeed = containsAny(text, profile.twelveSpeedSignals as unknown as string[]);
+  const nonRoad = containsAny(text, profile.nonRoadSignals as unknown as string[]);
   const elevenSpeed = !!groupset && !twelveSpeed;
   const discreetColor = containsAny(text, profile.discreetColors as unknown as string[]);
   const loudColor = containsAny(text, profile.loudColors as unknown as string[]);
@@ -99,6 +100,7 @@ export function scoreListing(listing: Listing): ScoreResult {
     return reject(`Nad rozpočet (${listing.priceCzk} Kč > ${profile.budgetCzk} Kč)`);
   }
   if (!brand) return reject("Není TOP prémiová značka");
+  if (nonRoad) return reject("Není silniční závodní kolo (MTB/cross/trek/city/e-bike)");
   if (electronic) return reject("Elektronické řazení (Di2/eTap/AXS) — nechceme");
   if (twelveSpeed) return reject("12rychlostní — nekompatibilní s 11s kazetou");
 

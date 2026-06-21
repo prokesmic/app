@@ -19,26 +19,49 @@ export const profile = {
     acceptCm: [56, 57, 58, 59, 60, 61],
   },
 
-  /** Only TOP premium brands. Non-premium brands are a hard reject. */
+  /**
+   * Only TOP premium brands. Non-premium brands are a hard reject.
+   * The first five are the explicitly requested ones; the rest are widely
+   * recognised premium race marques added to widen the net.
+   */
   brands: [
     "specialized",
     "trek",
     "canyon",
     "cannondale",
     "bmc",
+    // Additional top premium race brands
+    "cervelo", "cervélo",
+    "pinarello",
+    "colnago",
+    "scott",
+    "wilier",
+    "factor",
+    "look",
+    "bianchi",
+    "ridley",
+    "orbea",
+    "giant", // race models only (TCR / Propel) score via raceModels
   ],
 
   /** Race models close to a Tarmac SL7 geometry get a bonus. */
   raceModels: [
-    "tarmac", // Specialized
-    "allez sprint",
-    "emonda", // Trek
-    "madone",
-    "ultimate", // Canyon
-    "aeroad",
-    "supersix", "super six", "supersix evo", // Cannondale
-    "caad", // alu race (CAAD10/12/13) — Tarmac-like geo
+    "tarmac", "venge", "allez sprint", // Specialized
+    "emonda", "madone", // Trek
+    "ultimate", "aeroad", // Canyon
+    "supersix", "super six", "supersix evo", "caad", // Cannondale (CAAD = alu race)
     "teammachine", "team machine", "slr", // BMC
+    "soloist", "s5", "s3", "r5", "caledonia", // Cervélo
+    "dogma", "prince", "gan", "f8", "f10", "f12", // Pinarello
+    "v3rs", "v4rs", "c64", "c68", "v2-r", // Colnago
+    "addict", "foil", // Scott
+    "zero", "cento", "filante", // Wilier
+    "o2", "ostro", // Factor
+    "795", "785", "blade", // Look
+    "oltre", "sprint rc", "specialissima", // Bianchi
+    "noah", "helium", "fenix sl", // Ridley
+    "orca", // Orbea
+    "tcr", "propel", // Giant
   ],
 
   /** Endurance/comfort geometry — penalised (not what the rider wants). */
@@ -65,6 +88,19 @@ export const profile = {
   twelveSpeedSignals: [
     "12s", "12 s", "12-speed", "12 speed", "12 rychlost", "12rychlost",
     "2x12", "r7100", "r8100", "r9200", "105 di2", "12 kol",
+  ],
+
+  /**
+   * Not a road race bike — hard reject. Premium brands also make MTBs,
+   * cyclocross, gravel-cross, trekking and city bikes; the rider wants a
+   * road race bike (silniční) for the trainer, so filter those out.
+   */
+  nonRoadSignals: [
+    "horske kolo", "horske kola", "horsky", "mtb", "29er", "29\"", "27,5", "27.5",
+    "26\"", "celoodpruzen", "hardtail", "hard tail",
+    "cyklokros", "cyclocross", "cross country", "krosove", "krosove", "crossove",
+    "trekove", "trekingove", "trekingovy", "treking", "mestske kolo", "mestsky",
+    "city bike", "elektrokolo", "ebike", "e-bike", "e bike", "elektrokola",
   ],
 
   /** Discreet colours the rider prefers. */
