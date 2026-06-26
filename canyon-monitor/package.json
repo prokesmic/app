@@ -1,0 +1,14 @@
+{
+  "name": "canyon-outlet-monitor",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "24/7 monitor for the Canyon factory outlet — alerts on Telegram (mirrored to Garmin) when bikes appear in your sizes.",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "LOOP=1 node monitor.mjs",
+    "once": "node monitor.mjs"
+  }
+}
