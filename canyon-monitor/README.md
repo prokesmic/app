@@ -1,115 +1,107 @@
 # Canyon Outlet Monitor 🚲
 
-A 24/7 worker that watches the **Canyon factory outlet** and pings you the
-moment a bike becomes available in a size you want. Alerts go to **Telegram**,
-which also shows up **on your Garmin watch** via Garmin Connect's Smart
-Notifications.
+Watches the **Canyon factory outlet** and pings you the moment a bike becomes
+available in a size you want. Alerts go to **ntfy** and/or **Telegram**, both of
+which show up **on a Garmin watch** via Garmin Connect Smart Notifications.
 
-**Default configuration (your request):**
+**Configured for your request:**
 - Region: `en-de` (EU English outlet)
 - Category: **gravel bikes**
 - Sizes: **L** and **XS**
-- Scan interval: **every 3 minutes**
+- Scan interval: **~3 minutes**
 
-All of that is configurable with environment variables.
+Everything is configurable via environment variables.
+
+---
+
+## ✅ It already runs itself — on GitHub Actions
+
+This repo is public, so GitHub Actions runs the monitor **free, 24/7, on
+GitHub's servers** — no machine of yours, no deploy step. The schedule lives in
+[`.github/workflows/canyon-monitor.yml`](../.github/workflows/canyon-monitor.yml):
+it triggers every 5 minutes and does 2 scans per run (~140s apart) for an
+effective cadence near 3 minutes (GitHub's scheduler has a 5-min floor and can
+lag under load, so treat 3 min as best-effort).
+
+State (what it has already seen) is persisted between runs via the Actions
+cache, so you only get pinged on genuine changes.
+
+### To receive the alerts on your phone + watch
+
+**Option A — ntfy (no setup, already wired):**
+1. Install the free **ntfy** app ([iOS](https://apps.apple.com/app/ntfy/id1625396347) /
+   [Android](https://play.google.com/store/apps/details?id=io.heckel.ntfy)).
+2. Tap **+**, subscribe to the topic:
+   ```
+   canyon-725492658e89b57c
+   ```
+   (default server `ntfy.sh`).
+3. In **Garmin Connect → Notifications/Smart Notifications**, allow the **ntfy**
+   app, and enable **Phone Notifications** on the watch.
+
+That's it — alerts now buzz your wrist. (The topic is unguessable but lives in a
+public repo; to lock it down later, switch to a [reserved/auth'd ntfy topic](https://docs.ntfy.sh/config/#access-control)
+and put the token in a repo secret, or just change the topic name.)
+
+**Option B — Telegram (optional, uses what you originally asked for):**
+1. In Telegram, message **@BotFather** → `/newbot` → copy the **bot token**.
+2. Message your new bot once ("hi"), then open
+   `https://api.telegram.org/bot<TOKEN>/getUpdates` and copy the
+   `"chat":{"id": … }` number.
+3. On the GitHub mobile site: **repo → Settings → Secrets and variables →
+   Actions → New repository secret**, add:
+   - `TELEGRAM_BOT_TOKEN` = your token
+   - `TELEGRAM_CHAT_ID` = your chat id
+4. Enable **Telegram** in Garmin Connect Smart Notifications.
+
+The workflow already references those secrets — the next run picks them up
+automatically. No secrets = Telegram is silently skipped (ntfy still works).
+
+### Watch it / trigger it manually
+
+GitHub mobile site or web: **Actions → canyon-monitor → Run workflow** to fire a
+scan on demand, or open any run to see the logs (`scanned grid: 13 …`).
+
+> Note: GitHub disables scheduled workflows after ~60 days with no repo commits.
+> If you go that long untouched, push any commit (or hit "Run workflow") to keep
+> it alive.
 
 ---
 
 ## How it works
 
-1. Every 3 minutes it loads the outlet grid
-   (`canyon.com/en-de/outlet-bikes/gravel-bikes/`) to get the current list of
-   gravel bikes.
-2. For each bike it reads the product page's structured data
-   (`ProductGroup` JSON-LD) to get **per-size availability**
-   (`InStock` / `PreOrder` / `OutOfStock`).
-3. It remembers the last state in a small JSON file. When a watched size
-   (L or XS) **flips to available** — or a **brand-new bike** shows up already
-   available — it sends you a message with the bike, colour, price, and a
-   direct link to that exact size.
+1. Every cycle it loads the outlet grid
+   (`canyon.com/en-de/outlet-bikes/gravel-bikes/`) for the current gravel bikes.
+2. For each bike it reads the product page's structured data (`ProductGroup`
+   JSON-LD) for **per-size availability** (`InStock` / `PreOrder` / `OutOfStock`).
+3. It diffs against the last-seen state. When a watched size (L or XS) **flips to
+   available** — or a **brand-new bike** shows up already available — it sends a
+   message with the bike, colour, price, and a direct link to that exact size.
 
-The first run is silent except for one "monitor is live" summary, so you don't
-get blasted with everything that's already in stock. After that you only hear
-about genuine changes.
+First run seeds a silent baseline plus one "monitor is live" summary, so you
+aren't blasted with everything already in stock. After that, only real changes.
 
-No npm dependencies — it uses Node's built-in `fetch` (Node 18+).
+No npm dependencies — uses Node's built-in `fetch` (Node 18+).
 
 ---
 
-## 1. Create your Telegram bot (2 minutes)
-
-1. In Telegram, open a chat with **@BotFather**.
-2. Send `/newbot`, pick a name and username. BotFather replies with a
-   **bot token** like `123456789:ABCdef...` → that's `TELEGRAM_BOT_TOKEN`.
-3. Open a chat with your new bot and send it any message (e.g. "hi"). This is
-   required before the bot can message you.
-4. Visit `https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates` in a browser.
-   Find `"chat":{"id":123456789,...}` → that number is `TELEGRAM_CHAT_ID`.
-
-## 2. Make the alerts reach your Garmin watch
-
-Telegram → phone → watch, using the standard mirroring built into Garmin:
-
-1. Install the **Telegram** app on your phone and sign in.
-2. In **Garmin Connect** app → **Settings → Notifications / Smart
-   Notifications** → enable notifications and make sure **Telegram** is in the
-   allowed apps list (Garmin mirrors your phone's notifications).
-3. On your watch, enable **Phone Notifications** (and "during activity" if you
-   want alerts while riding).
-
-Now every Telegram alert from the monitor buzzes your wrist. (Optional: set
-`NTFY_TOPIC` to also push via [ntfy.sh](https://ntfy.sh) as a separate channel —
-see `.env.example`.)
-
----
-
-## 3. Try it locally first
+## Run it locally (optional)
 
 ```bash
 cd canyon-monitor
-cp .env.example .env          # fill in TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID
-set -a; . ./.env; set +a      # load the env file
-npm run once                  # single scan; sends the "live" summary to Telegram
+cp .env.example .env          # fill in tokens if you want Telegram locally
+set -a; . ./.env; set +a
+npm run once                  # single scan
+npm start                     # loop forever every 3 min
 ```
 
-You should get the startup summary in Telegram (and on your watch). Run it once
-more — it should say `no changes` in the logs.
+## Alternative: always-on worker (true 3-min cadence)
 
-To run it continuously on your own machine: `npm start` (loops every 3 min).
-
----
-
-## 4. Deploy as a 24/7 cloud worker
-
-This is a background worker (no web port). Pick one host. **Attach a small disk
-so a redeploy doesn't make it forget what it has already seen.**
-
-### Option A — Railway (easiest)
-
-1. Create a project from this repo, **Root Directory = `canyon-monitor`**.
-   Railway auto-detects the `Dockerfile`.
-2. Add a **Volume** mounted at `/data`.
-3. Variables → add `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` (the rest have
-   sane defaults baked into the Dockerfile; override any if you like).
-4. Deploy. Check the logs for `Canyon monitor — ...` and `scanned grid`.
-
-### Option B — Render (blueprint included)
-
-`render.yaml` defines a Background Worker with a 1 GB disk at `/data`.
-New + → **Blueprint** → point at this repo → set the two Telegram secrets in the
-dashboard → deploy. Use a paid worker plan (the free tier sleeps).
-
-### Option C — Fly.io (config included)
-
-```bash
-cd canyon-monitor
-fly launch --no-deploy            # accept the provided fly.toml
-fly volume create canyon_state --size 1 --region fra
-fly secrets set TELEGRAM_BOT_TOKEN=xxx TELEGRAM_CHAT_ID=yyy
-fly deploy
-```
-
-`fly.toml` pins one always-on machine in Frankfurt (close to the EU store).
+If you ever want a hard 3-minute cadence (no GitHub scheduler jitter), run it as
+a worker on Railway / Render / Fly. `Dockerfile`, `render.yaml` and `fly.toml`
+are included; see the env reference below and set `LOOP=1`,
+`INTERVAL_SECONDS=180`. This needs a host account, so it's the optional upgrade
+path — the GitHub Actions setup above already runs with zero hosting.
 
 ---
 
@@ -117,37 +109,35 @@ fly deploy
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `TELEGRAM_BOT_TOKEN` | — | **Required.** BotFather token. |
-| `TELEGRAM_CHAT_ID` | — | **Required.** Your chat id. |
+| `NTFY_TOPIC` | — | ntfy topic to publish to (set in the workflow). |
+| `NTFY_SERVER` | `https://ntfy.sh` | ntfy server. |
+| `TELEGRAM_BOT_TOKEN` | — | Optional. BotFather token (repo secret). |
+| `TELEGRAM_CHAT_ID` | — | Optional. Your chat id (repo secret). |
 | `CANYON_LOCALE` | `en-de` | Store locale (`en-us`, `en-gb`, …). |
 | `CANYON_CATEGORY` | `gravel-bikes` | Outlet sub-category, or `""` for the whole outlet. |
 | `CANYON_SIZES` | `L,XS` | Frame sizes to watch (comma-separated). |
-| `CANYON_AVAILABLE_STATES` | `InStock,PreOrder` | Which states count as "available". Set to `InStock` to ignore pre-orders. |
-| `INTERVAL_SECONDS` | `180` | Seconds between scans. |
-| `LOOP` | `1` (worker) | `1` = run forever; unset = run once. |
+| `CANYON_AVAILABLE_STATES` | `InStock,PreOrder` | States that count as "available". Set to `InStock` to ignore pre-orders. |
+| `PASSES` | `1` | One-shot mode: scans per invocation (CI uses 2). |
+| `PASS_DELAY` | `150` | Seconds between passes. |
+| `INTERVAL_SECONDS` | `180` | Loop mode (`LOOP=1`) seconds between scans. |
+| `LOOP` | — | `1` = run forever (worker); unset = one-shot. |
 | `CONCURRENCY` | `5` | Parallel product fetches. |
-| `STATE_FILE` | `./state/canyon-state.json` | Where last-seen state is stored. Put on a volume in prod. |
-| `NTFY_TOPIC` | — | Optional second push channel via ntfy.sh. |
+| `STATE_FILE` | `./state/canyon-state.json` | Where last-seen state is stored. |
 
 ### Examples
 
-Watch the **whole** outlet in size M only:
-```
-CANYON_CATEGORY=   CANYON_SIZES=M
-```
-Watch road bikes in 56cm-equivalent and only when actually in stock:
-```
-CANYON_CATEGORY=road-bikes   CANYON_SIZES=M   CANYON_AVAILABLE_STATES=InStock
-```
+Whole outlet, size M only: `CANYON_CATEGORY=` and `CANYON_SIZES=M`.
+Road bikes, in-stock only: `CANYON_CATEGORY=road-bikes CANYON_AVAILABLE_STATES=InStock`.
 
 ---
 
 ## Notes & limitations
 
-- **Be polite:** 3-minute scans of ~13 gravel bikes is light traffic. If you
-  widen to the whole outlet (~240 bikes) consider raising `INTERVAL_SECONDS`.
-- The monitor reads Canyon's public structured data; if Canyon changes their
-  page markup the grid parse may return 0 products — the script logs a warning
-  and skips that cycle rather than wiping state.
-- State persistence matters: without a mounted disk, a redeploy re-seeds the
-  baseline (one summary message, no false "new bike" spam).
+- 3-minute cadence on GitHub Actions is best-effort (5-min floor + scheduler
+  jitter). Use the worker option for a strict 3 min.
+- The monitor reads Canyon's public structured data; if their markup changes and
+  the grid parse returns 0 products, it logs a warning and skips the cycle rather
+  than wiping state.
+- The ntfy topic sits in a public repo. It's random, but anyone who finds it
+  could read alerts or send you noise — rotate it or move to an auth'd topic if
+  that matters to you.

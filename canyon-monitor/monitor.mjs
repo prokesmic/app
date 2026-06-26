@@ -32,6 +32,10 @@ const cfg = {
     .filter(Boolean),
   intervalSeconds: Number(process.env.INTERVAL_SECONDS || 180),
   loop: process.env.LOOP === "1" || process.argv.includes("--loop"),
+  // For one-shot (CI) runs: do N scans spaced PASS_DELAY seconds apart, so a
+  // job triggered every 5 min can still cover the window at ~3-min spacing.
+  passes: Number(process.env.PASSES || 1),
+  passDelaySeconds: Number(process.env.PASS_DELAY || 150),
   concurrency: Number(process.env.CONCURRENCY || 5),
   stateFile: process.env.STATE_FILE || "./state/canyon-state.json",
   telegram: {
@@ -284,11 +288,13 @@ async function runCycle(state) {
 
       if (nowAvail) currentlyAvailable.push({ p, size, info });
 
-      const wasAvail = prev ? isAvailable(prev.status) : false;
+      const wasAvail = prev ? isAvailable(prev) : false;
       if (nowAvail && !wasAvail) {
         events.push({ p, size, info, isNewBike: !prev });
       }
-      state.items[key] = { status: info.status, ts: Date.now() };
+      // Store just the status string so the state file is deterministic
+      // (only changes when availability actually changes).
+      state.items[key] = info.status;
     }
   }
 
@@ -368,7 +374,17 @@ async function main() {
       ","
     )} available=${cfg.availableStates.join(",")} interval=${cfg.intervalSeconds}s loop=${cfg.loop}`
   );
-  if (!cfg.loop) return once();
+  if (!cfg.loop) {
+    // One-shot mode (e.g. GitHub Actions): run `passes` scans spaced apart.
+    for (let p = 0; p < Math.max(1, cfg.passes); p++) {
+      if (p > 0) {
+        log(`pass ${p + 1}/${cfg.passes} — waiting ${cfg.passDelaySeconds}s`);
+        await sleep(cfg.passDelaySeconds * 1000);
+      }
+      await once();
+    }
+    return;
+  }
   // self-scheduling loop: run, wait interval, repeat (no overlap)
   for (;;) {
     const started = Date.now();
