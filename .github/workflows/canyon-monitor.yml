@@ -1,0 +1,69 @@
+name: canyon-monitor
+
+# Runs the Canyon outlet monitor on GitHub's servers — no machine of your own.
+# Public repo => Actions minutes are free and unlimited.
+#
+# GitHub's scheduler has a ~5 min minimum and can be delayed under load, so we
+# trigger every 5 minutes AND do 2 scans per run (PASSES) ~140s apart to get an
+# effective cadence close to the requested 3 minutes.
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}   # lets you (or me) trigger a run on demand
+
+# Never run two scans at once; queue instead of overlapping.
+concurrency:
+  group: canyon-monitor
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout monitor code
+        uses: actions/checkout@v4
+
+      # Persist "last seen" state between runs via the Actions cache.
+      # Unique key per run + prefix restore-key = always load the latest entry.
+      - name: Restore state
+        uses: actions/cache/restore@v4
+        with:
+          path: state.json
+          key: canyon-state-${{ github.run_id }}
+          restore-keys: |
+            canyon-state-
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Scan Canyon outlet
+        env:
+          STATE_FILE: state.json
+          PASSES: "2"
+          PASS_DELAY: "140"
+          # --- what to watch (your request) ---
+          CANYON_LOCALE: en-de
+          CANYON_CATEGORY: gravel-bikes
+          CANYON_SIZES: L,XS
+          CANYON_AVAILABLE_STATES: InStock,PreOrder
+          # --- notifications ---
+          # ntfy works with no secrets: just subscribe to this topic in the app.
+          NTFY_TOPIC: canyon-725492658e89b57c
+          NTFY_SERVER: https://ntfy.sh
+          # Telegram lights up automatically once you add these repo secrets.
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: node canyon-monitor/monitor.mjs
+
+      - name: Save state
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: state.json
+          key: canyon-state-${{ github.run_id }}

@@ -1,0 +1,31 @@
+# Render.com blueprint — deploy as a Background Worker (no public port needed).
+# In Render: New + > Blueprint, point at this repo. Set the secret env vars in
+# the dashboard (they are marked sync:false so they are NOT committed).
+services:
+  - type: worker
+    name: canyon-outlet-monitor
+    runtime: docker
+    dockerfilePath: ./canyon-monitor/Dockerfile
+    dockerContext: ./canyon-monitor
+    plan: starter            # cheapest always-on worker; free tier sleeps, don't use it
+    disk:
+      name: canyon-state
+      mountPath: /data        # matches STATE_FILE=/data/canyon-state.json in the Dockerfile
+      sizeGB: 1
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
+      - key: CANYON_LOCALE
+        value: en-de
+      - key: CANYON_CATEGORY
+        value: gravel-bikes
+      - key: CANYON_SIZES
+        value: L,XS
+      - key: CANYON_AVAILABLE_STATES
+        value: InStock,PreOrder
+      - key: INTERVAL_SECONDS
+        value: "180"
+      - key: LOOP
+        value: "1"
