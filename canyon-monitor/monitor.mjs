@@ -32,6 +32,10 @@ const cfg = {
     .filter(Boolean),
   intervalSeconds: Number(process.env.INTERVAL_SECONDS || 180),
   loop: process.env.LOOP === "1" || process.argv.includes("--loop"),
+  // In loop mode, exit cleanly after this many seconds (0 = never). Lets a CI
+  // run scan continuously for a while, then exit so state is saved and the
+  // schedule restarts a fresh run.
+  maxRuntimeSeconds: Number(process.env.MAX_RUNTIME_SECONDS || 0),
   // For one-shot (CI) runs: do N scans spaced PASS_DELAY seconds apart, so a
   // job triggered every 5 min can still cover the window at ~3-min spacing.
   passes: Number(process.env.PASSES || 1),
@@ -318,30 +322,11 @@ async function runCycle(state) {
     }
   }
 
-  // First run: seed silently, send one summary so the user knows it's alive.
+  // First run (or after a state-cache miss) seeds the baseline SILENTLY, so a
+  // restart never spams you. Genuine changes are detected from the next cycle.
   if (!state.seeded) {
     state.seeded = true;
-    const lines = currentlyAvailable
-      .map(
-        ({ p, size, info }) =>
-          `• ${p.name} — ${size} (${info.status}) — €${info.price}`
-      )
-      .join("\n");
-    await notify({
-      title: "Canyon monitor started",
-      html:
-        `✅ <b>Canyon outlet monitor is live</b>\n` +
-        `Watching <b>${cfg.category || "all outlet"}</b> in sizes <b>${cfg.sizes.join(
-          ", "
-        )}</b> every ${cfg.intervalSeconds / 60} min.\n\n` +
-        (lines
-          ? `Currently available now:\n${escapeHtml(lines)}`
-          : `Nothing in ${cfg.sizes.join("/")} available right now — I'll ping you the moment something appears.`),
-      plain: `Canyon monitor live. ${currentlyAvailable.length} bike(s) currently in ${cfg.sizes.join(
-        "/"
-      )}.`,
-    });
-    log(`seeded baseline: ${currentlyAvailable.length} available now`);
+    log(`seeded baseline silently: ${currentlyAvailable.length} available now`);
     return state;
   }
 
@@ -465,13 +450,19 @@ async function main() {
     }
     return;
   }
-  // self-scheduling loop: run, wait interval, repeat (no overlap)
+  // self-scheduling loop: scan, wait interval, repeat — until the optional max
+  // runtime, then exit cleanly so CI persists state and the schedule restarts.
+  const startedAt = Date.now();
+  const maxMs = cfg.maxRuntimeSeconds > 0 ? cfg.maxRuntimeSeconds * 1000 : Infinity;
   for (;;) {
     const started = Date.now();
     await once();
+    if (Date.now() - startedAt >= maxMs) {
+      log("max runtime reached — exiting cleanly");
+      return;
+    }
     const elapsed = Date.now() - started;
-    const wait = Math.max(0, cfg.intervalSeconds * 1000 - elapsed);
-    await sleep(wait);
+    await sleep(Math.max(0, cfg.intervalSeconds * 1000 - elapsed));
   }
 }
 

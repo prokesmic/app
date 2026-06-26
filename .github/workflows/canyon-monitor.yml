@@ -3,9 +3,12 @@ name: canyon-monitor
 # Runs the Canyon outlet monitor on GitHub's servers — no machine of your own.
 # Public repo => Actions minutes are free and unlimited.
 #
-# GitHub's scheduler has a ~5 min minimum and can be delayed under load, so we
-# trigger every 5 minutes AND do 2 scans per run (PASSES) ~140s apart to get an
-# effective cadence close to the requested 3 minutes.
+# GitHub heavily throttles scheduled workflows (often only every 1-2h on quiet
+# repos), so instead of one quick scan per trigger, each run LOOPS — scanning
+# every 3 minutes for ~50 minutes, then exits cleanly (persisting state). With
+# the concurrency guard, a queued scheduled run starts right after the previous
+# one ends, giving near-continuous ~3-min coverage. (For a hard guarantee with
+# zero gaps, run the always-on worker — see README.)
 
 on:
   schedule:
@@ -28,7 +31,7 @@ permissions:
 jobs:
   scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 58   # safety net above MAX_RUNTIME_SECONDS
     steps:
       - name: Checkout monitor code
         uses: actions/checkout@v4
@@ -50,8 +53,9 @@ jobs:
       - name: Scan Canyon outlet
         env:
           STATE_FILE: state.json
-          PASSES: "2"
-          PASS_DELAY: "140"
+          LOOP: "1"                    # scan repeatedly within the run
+          INTERVAL_SECONDS: "180"      # every 3 minutes
+          MAX_RUNTIME_SECONDS: "3000"  # for ~50 min, then exit cleanly
           # --- what to watch (your request) ---
           CANYON_LOCALE: en-de
           CANYON_CATEGORY: gravel-bikes
