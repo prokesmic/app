@@ -11,6 +11,11 @@ on:
   schedule:
     - cron: "*/5 * * * *"
   workflow_dispatch: {}   # lets you (or me) trigger a run on demand
+  push:                   # also run on any push to main (the workflow lives here)
+    branches: [main]
+    paths:
+      - "canyon-monitor/**"
+      - ".github/workflows/canyon-monitor.yml"
 
 # Never run two scans at once; queue instead of overlapping.
 concurrency:
