@@ -38,6 +38,10 @@ const cfg = {
   passDelaySeconds: Number(process.env.PASS_DELAY || 150),
   concurrency: Number(process.env.CONCURRENCY || 5),
   stateFile: process.env.STATE_FILE || "./state/canyon-state.json",
+  // Targeted watchlist of specific product URLs (any category, not just the
+  // outlet) — each entry carries its own sizes/colour/states to alert on.
+  watchlistFile:
+    process.env.WATCHLIST_FILE || new URL("./watchlist.json", import.meta.url),
   telegram: {
     token: process.env.TELEGRAM_BOT_TOKEN || "",
     chatId: process.env.TELEGRAM_CHAT_ID || "",
@@ -177,7 +181,7 @@ async function getSizeAvailability(url) {
     if (Array.isArray(off)) off = off[0] || {};
     const size = String(v.size || "").toUpperCase();
     if (!size) continue;
-    sizes[size] = {
+    const cand = {
       status: String(off.availability || "").split("/").pop() || "Unknown",
       price: off.price || null,
       currency: off.priceCurrency || "EUR",
@@ -186,6 +190,14 @@ async function getSizeAvailability(url) {
         ? off.url || v.url || url
         : SITE + (off.url || v.url),
     };
+    // A model can have several variants of the same frame size (e.g. different
+    // cockpits). Keep the most-available one so size L counts as in stock if
+    // ANY L variant is in stock.
+    const rank = { InStock: 3, PreOrder: 2, OutOfStock: 1 };
+    const cur = sizes[size];
+    if (!cur || (rank[cand.status] || 0) > (rank[cur.status] || 0)) {
+      sizes[size] = cand;
+    }
   }
   return {
     master,
@@ -356,12 +368,72 @@ function escapeHtml(s) {
 }
 
 // ---------------------------------------------------------------------------
+// Targeted watchlist — specific bikes/colours/sizes, alert on chosen states
+// (e.g. "tell me the instant Grail CFR AXS in size L / Amethyst is in stock").
+// ---------------------------------------------------------------------------
+async function loadWatchlist() {
+  try {
+    return JSON.parse(await readFile(cfg.watchlistFile, "utf8"));
+  } catch {
+    return [];
+  }
+}
+
+async function processWatchlist(state) {
+  const list = await loadWatchlist();
+  if (!Array.isArray(list) || list.length === 0) return;
+  log(`watchlist: checking ${list.length} target(s)`);
+
+  const results = await pool(
+    list,
+    async (entry) => ({ entry, info: await getSizeAvailability(entry.url) }),
+    cfg.concurrency
+  );
+
+  for (const r of results) {
+    if (!r || r.error || !r.info) continue;
+    const { entry, info } = r;
+    const states =
+      entry.states && entry.states.length ? entry.states : ["InStock"];
+    const sizes = (entry.sizes && entry.sizes.length ? entry.sizes : ["L"]).map(
+      (s) => String(s).toUpperCase()
+    );
+    for (const size of sizes) {
+      const sz = info.sizes[size];
+      if (!sz) continue; // model doesn't come in that size
+      const key = `watch:${info.master}|${info.color}|${size}`;
+      const prev = state.items[key];
+      const nowOk = states.includes(sz.status);
+      const wasOk = prev ? states.includes(prev) : false;
+
+      if (nowOk && !wasOk) {
+        const colour = entry.color || info.colorName;
+        const html =
+          `🟣 <b>IN STOCK</b> — size <b>${size}</b>!\n` +
+          `🚲 <b>${escapeHtml(entry.name)}</b> (${escapeHtml(colour)})\n` +
+          `💶 €${sz.price} • ${sz.status}\n` +
+          `🔗 ${sz.url}`;
+        await notify({
+          title: `${entry.name} ${size} IN STOCK`,
+          html,
+          plain: `${entry.name} (${colour}) — size ${size} ${sz.status} — €${sz.price}`,
+          url: sz.url,
+        });
+        log(`WATCH NOTIFIED: ${entry.name} ${size} ${sz.status}`);
+      }
+      state.items[key] = sz.status;
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 async function once() {
   const state = await loadState();
   try {
     const next = await runCycle(state);
+    await processWatchlist(next);
     await saveState(next);
   } catch (err) {
     log("cycle error:", err?.message || err);

@@ -68,6 +68,26 @@ scan on demand, or open any run to see the logs (`scanned grid: 13 …`).
 
 ---
 
+## Targeted watchlist (specific bikes, any category)
+
+Beyond the gravel-outlet sweep, [`watchlist.json`](./watchlist.json) tracks
+**specific products** anywhere on canyon.com (not just the outlet) and alerts the
+moment they hit a chosen availability state. Currently watching:
+
+| Bike | Size | Colour | Alert when |
+|---|---|---|---|
+| Grail CFR Di2 (`4154`) | L | Amethyst Shade | **InStock** |
+| Grail CFR AXS (`4152`) | L | Amethyst Shade | **InStock** |
+
+Each entry is `{ name, url (incl. colour), color, sizes, states }`. A model can
+have several variants per frame size (e.g. different cockpits) — size L counts as
+in stock if **any** L variant is. To add a bike, copy its product URL (with the
+colour selected so the `dwvar_..._rahmenfarbe=` code is in the link) and add a
+row. `states` can be `InStock` and/or `PreOrder`.
+
+Unlike the outlet sweep, the watchlist alerts even on first observation — so if a
+target is already in stock when added, you get pinged right away.
+
 ## How it works
 
 1. Every cycle it loads the outlet grid
