@@ -175,25 +175,33 @@ async function getSizeAvailability(url) {
   }
   if (!group) return null;
 
+  // IMPORTANT: ProductGroup.hasVariant lists variants for ALL colours, tagged
+  // only by `size`. Each variant's offer URL carries its own colour code
+  // (dwvar_..._rahmenfarbe). We must only count variants matching the colour we
+  // actually requested — otherwise an in-stock OTHER colour leaks into our
+  // "size L available?" check (the Grail CFR false-positive bug).
+  const wantColor = color && color !== "default" ? color : null;
+  const colorOf = (u) => (String(u).match(/rahmenfarbe=([A-Z0-9_]+)/) || [])[1] || null;
+
   const sizes = {};
+  const rank = { InStock: 3, PreOrder: 2, OutOfStock: 1 };
   for (const v of group.hasVariant || []) {
     let off = v.offers || {};
     if (Array.isArray(off)) off = off[0] || {};
     const size = String(v.size || "").toUpperCase();
     if (!size) continue;
+    const vUrl = off.url || v.url || url;
+    const vColor = colorOf(vUrl);
+    if (wantColor && vColor && vColor !== wantColor) continue; // wrong colour
     const cand = {
       status: String(off.availability || "").split("/").pop() || "Unknown",
       price: off.price || null,
       currency: off.priceCurrency || "EUR",
       sku: v.sku || "",
-      url: (off.url || v.url || url).startsWith("http")
-        ? off.url || v.url || url
-        : SITE + (off.url || v.url),
+      url: String(vUrl).startsWith("http") ? vUrl : SITE + vUrl,
     };
-    // A model can have several variants of the same frame size (e.g. different
-    // cockpits). Keep the most-available one so size L counts as in stock if
-    // ANY L variant is in stock.
-    const rank = { InStock: 3, PreOrder: 2, OutOfStock: 1 };
+    // Within the requested colour a size could still have several variants
+    // (e.g. cockpit options) — keep the most-available one.
     const cur = sizes[size];
     if (!cur || (rank[cand.status] || 0) > (rank[cur.status] || 0)) {
       sizes[size] = cand;
