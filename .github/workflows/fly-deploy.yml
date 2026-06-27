@@ -1,0 +1,31 @@
+name: fly-deploy
+
+# Deploys the Canyon monitor to Fly.io as a 24/7 worker — no local CLI needed.
+# One-time setup:
+#   1. Create a Fly account (fly.io) and add a payment card.
+#   2. Create a Fly deploy/access token and add it as the repo secret FLY_API_TOKEN.
+#   3. Actions tab -> "fly-deploy" -> Run workflow.
+# Change FLY_APP below if that app name is already taken globally.
+
+on:
+  workflow_dispatch: {}
+
+env:
+  FLY_APP: canyon-monitor-prokesmic
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Create app if missing, then deploy
+        working-directory: canyon-monitor
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          flyctl apps create "$FLY_APP" --org personal 2>/dev/null \
+            || echo "App already exists (or is owned by you) — continuing."
+          flyctl deploy --remote-only --ha=false --app "$FLY_APP"
+          echo "Deployed. Recent logs:"
+          flyctl logs --app "$FLY_APP" --no-tail | tail -n 20 || true

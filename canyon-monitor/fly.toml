@@ -1,32 +1,14 @@
-# Fly.io config — a single always-on worker machine (no HTTP service).
-# Setup:
-#   fly launch --no-deploy            (from the canyon-monitor/ dir; accept this file)
-#   fly volume create canyon_state --size 1
-#   fly secrets set TELEGRAM_BOT_TOKEN=... TELEGRAM_CHAT_ID=...
-#   fly deploy
-app = "canyon-outlet-monitor"
+# Fly.io config — a single always-on worker machine (no public HTTP service).
+# Deployed via the .github/workflows/fly-deploy.yml pipeline (no local CLI needed).
+app = "canyon-monitor-prokesmic"
 primary_region = "fra"            # Frankfurt — close to canyon.com (en-de)
 
 [build]
   dockerfile = "Dockerfile"
 
-[mounts]
-  source = "canyon_state"
-  destination = "/data"
+# All config (watch targets, ntfy topic, 3-min loop) is baked into the image.
+# Add a volume later for state persistence:  flyctl volumes create canyon_state
 
-[env]
-  CANYON_LOCALE = "en-de"
-  CANYON_CATEGORY = "gravel-bikes"
-  CANYON_SIZES = "L,XS"
-  CANYON_AVAILABLE_STATES = "InStock,PreOrder"
-  INTERVAL_SECONDS = "180"
-  LOOP = "1"
-  STATE_FILE = "/data/canyon-state.json"
-
-# Keep exactly one machine running 24/7; never auto-stop.
 [[vm]]
   size = "shared-cpu-1x"
   memory = "256mb"
-
-[deploy]
-  min_machines_running = 1
