@@ -12,12 +12,5 @@
     "color": "Amethyst Shade",
     "sizes": ["L"],
     "states": ["InStock"]
-  },
-  {
-    "name": "RAILWAY TEST - ignore (worker self-test)",
-    "url": "https://www.canyon.com/en-de/gravel-bikes/race/grail/cfr/grail-cfr-di2/4154.html?dwvar_4154_pv_rahmenfarbe=R121_P05",
-    "color": "Amethyst Shade",
-    "sizes": ["L"],
-    "states": ["InStock", "PreOrder", "OutOfStock"]
   }
 ]
