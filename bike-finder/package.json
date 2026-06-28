@@ -1,0 +1,23 @@
+{
+  "name": "bike-trainer-finder",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Always-on agent that scans Czech bike marketplaces for a premium road bike suited to a Tacx Neo trainer and pushes only excellent matches to Telegram.",
+  "scripts": {
+    "once": "tsx src/index.ts --once",
+    "watch": "tsx src/index.ts --daemon",
+    "report": "tsx src/index.ts --once --report --dry-run",
+    "dry": "tsx src/index.ts --once --dry-run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.5.0"
+  }
+}
